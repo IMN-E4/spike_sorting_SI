@@ -1,0 +1,12 @@
+Creating a file so that we keep track of the things we are doing:
+
+Installation steps can be found at: https://docs.google.com/document/d/15mBfYgsdjWdMsDmHLQRx8Fa3VeLNt7JWjh839E2bfQM/edit?usp=sharing
+
+    July 2021: we created the following scripts- 
+        compute_peaks.py, compute_tridesclous_several_times.py, spike_sorting_pipeline,
+        test_ephyviewer_spike.py, test_ephyviewer.py
+
+        Remarks: 
+        1. We identified that TDC and SpykingCircus were not providing the same results after different sorting runs.
+        2. Even though we built the pipeline for drift checking, corrections are not available yet.
+        3. Most features are already available in EPHYVIEWER, but we still need to add spectrograms.

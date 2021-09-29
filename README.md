@@ -11,9 +11,10 @@
     Additional: script compute_tridesclous_several_times.py was used to check TDC stability. You can use it to check sorting stability again.
 
 
-
-
-
-
 ## How to use EphyViewer
     1. You can use test_ephyviewer*.py to play with it. We are still building the standard set of panels we would like to have, but with this tool you can code/adapt to different needs.
+
+
+
+## How to use SpikeInterface GUI
+    1. Use script si_GUI.py (under construction)

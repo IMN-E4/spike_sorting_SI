@@ -22,8 +22,12 @@ import os
 
 
 # Paths
-base_input_folder = Path('/home/arthur/Documents/SpikeSorting/Test_20210518/') 
-out_path = Path('/media/storage/spikesorting_output/sorting_pipeline_out_29092021_try/')
+# base_input_folder = Path('/home/arthur/Documents/SpikeSorting/Test_20210518/') 
+base_input_folder = Path('/mnt/data/sam/DataSpikeSorting/eduarda_arthur')
+
+
+# out_path = Path('/media/storage/spikesorting_output/sorting_pipeline_out_29092021_try/')
+out_path = base_input_folder / 'sorter_folders'
 
 
 # Get recordings
@@ -31,28 +35,55 @@ def get_recordings():
     """ Function to get the recordings and set the probe from base_input_folder
     
     """
-    data_folder = base_input_folder / 'raw_awake'
 
-    recording = si.SpikeGLXRecordingExtractor(data_folder, stream_id='imec0.ap')
-    probe = read_spikeglx(data_folder / 'raw_awake_01_g0_t0.imec0.ap.meta')
-    recording = recording.set_probe(probe)
-    
-    fs = recording.get_sampling_frequency()
-    
+    folder1 = base_input_folder / 'Rec_1_10_11_2021_g0/'
+    folder2 = base_input_folder / 'Rec_2_19_11_2021_g0'
+    folder3 = base_input_folder / 'Rec_3_19_11_2021_g0'
+    folder7 = base_input_folder / 'Rec_7_22_11_2021_g0/'
+
+    # folders = [folder1, folder2] # 
+    folders = [folder2]
+
     recordings = {}
+
+    for folder in folders:
+
+        rec = si.read_spikeglx(folder, stream_id='imec0.ap')
+        print(rec)
+        # recordings.append(rec)
+
+        recordings[folder1.name] = rec
+
+        # probe = rec.get_probe()
+        # from probeinterface.plotting import plot_probe
+        # fig, ax = plt.subplots()
+        # plot_probe(probe, ax=ax)
+        # fig.savefig('probe.png')
+        # plt.show()
+
+
+    # data_folder = base_input_folder / 'raw_awake'
+
+    # recording = si.SpikeGLXRecordingExtractor(data_folder, stream_id='imec0.ap')
+    # probe = read_spikeglx(data_folder / 'raw_awake_01_g0_t0.imec0.ap.meta')
+    # recording = recording.set_probe(probe)
+    
+    # fs = recording.get_sampling_frequency()
+    
+    # recordings = {}
     
 
-    ## You have to select the part of the recording by commenting the rest
+    # ## You have to select the part of the recording by commenting the rest
 
-    # full
-    #~ full_recording = recording
-    #~ recordings['full'] = recording
+    # # full
+    # #~ full_recording = recording
+    # #~ recordings['full'] = recording
     
-    # rest 
-    t0, t1 = (2000., 2500.) # Time in seconds
-    frame0, frame1 = int(t0*fs), int(t1*fs)
-    recordings['rest'] = recording.frame_slice(frame0, frame1)
-    recordings['rest'].set_probe(probe) #  this is due to a SI bug will be removed
+    # # rest 
+    # t0, t1 = (2000., 2500.) # Time in seconds
+    # frame0, frame1 = int(t0*fs), int(t1*fs)
+    # recordings['rest'] = recording.frame_slice(frame0, frame1)
+    # recordings['rest'].set_probe(probe) #  this is due to a SI bug will be removed
     
     # t0, t1 = 1000, 1100
     # frame0, frame1 = int(t0*fs), int(t1*fs)    
@@ -78,8 +109,8 @@ def apply_preprocessing_2(rec):
 
 ## You have to select the preprocessing you want by uncommenting
 pre_processings = {
-    'filter' : apply_preprocessing_1,
-    # 'filter+cmr_radius' : apply_preprocessing_2,
+    # 'filter' : apply_preprocessing_1,
+    'filter+cmr_radius' : apply_preprocessing_2,
 }
 
 ## You have to select the sorters you want by uncommenting
@@ -200,9 +231,9 @@ def run_all_sorters():
                     # No docker
                     print('Starting to run sorter without docker')
                     sorting = si.run_sorter(sorter_name, rec_processed,
-                    output_folder=output_folder, verbose=True, 
-                    raise_error=True,
-                    **sparams)
+                        output_folder=output_folder, verbose=True, 
+                        raise_error=True,
+                        **sparams)
 
                     # With docker
                     # print('Starting to run sorter with docker')
@@ -216,6 +247,9 @@ def run_all_sorters():
 
 def run_all_post_processing():
     recordings = get_recordings()
+
+    # TODO use run_sorters()
+
     
     for rec_name, rec in recordings.items():
         #~ print(rec_name, rec)
@@ -253,7 +287,10 @@ def run_all_post_processing():
                                 load_if_exists=True, ms_before=1., ms_after=2.,
                                 max_spikes_per_unit=500,
                                 chunk_size=30000, n_jobs=6, progress_bar=True)
-                    
+
+                    if sorting.unit_ids.size == 0:
+                        continue
+
                     # compute PCs
                     # pc = si.compute_principal_components(we, load_if_exists=True,
                     #             n_components=3, mode='by_channel_local')
@@ -268,22 +305,23 @@ def run_all_post_processing():
 
                     # https://spikeinterface.readthedocs.io/en/latest/modules/toolkit/plot_4_curation.html
 
+
                     print('Saving metrics')
                     metric_file_path = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_metrics.csv')
                     metrics.to_csv(metric_file_path)
                     
-                    # export report
-                    print('Starting to run export_report')
-                    report_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_report')
-                    si.export_report(we, report_folder, remove_if_exists=True,
-                            chunk_size=30000, n_jobs=6, progress_bar=True, metrics=metrics)
+                    # # export report
+                    # print('Starting to run export_report')
+                    # report_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_report')
+                    # si.export_report(we, report_folder, remove_if_exists=True,
+                    #         chunk_size=30000, n_jobs=6, progress_bar=True, metrics=metrics)
                     
-                    # export to phy
-                    print('Starting to run export_to_phy')
-                    phy_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_phy_export')
-                    si.export_to_phy(waveform_extractor=we, output_folder=phy_folder, compute_pc_features=False,
-                                    compute_amplitudes=True, chunk_size=30000, n_jobs=6, progress_bar=True,
-                                    remove_if_exists=True)
+                    # # export to phy
+                    # print('Starting to run export_to_phy')
+                    # phy_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_phy_export')
+                    # si.export_to_phy(waveform_extractor=we, output_folder=phy_folder, compute_pc_features=False,
+                    #                 compute_amplitudes=True, chunk_size=30000, n_jobs=6, progress_bar=True,
+                    #                 remove_if_exists=True)
 
                     # save to npz
                     output_sorting_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_sorting_uncurated')
@@ -309,7 +347,7 @@ def open_one_sorting():
 
 if __name__ == '__main__':
 
-    # run_all_sorters()
+    # run_all_sorters()
     
     run_all_post_processing()
     

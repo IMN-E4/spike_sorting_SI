@@ -360,13 +360,12 @@ def open_one_sorting():
 
 if __name__ == '__main__':
 
-    # for path in find_paths(main_dir=base_input_folder.as_posix(), bird='', key1='small'):
-    #     print('Working on: ', path)
+    for path in find_paths(main_dir=base_input_folder.as_posix(), bird='', key1='small'):
+        print('Working on: ', path)
 
-    #     run_all_sorters(path)
+        run_all_sorters(path)
         
-    #     # run_all_post_processing(path)
+        # run_all_post_processing(path)
         
-    
-    open_one_sorting()
+    # open_one_sorting()
         

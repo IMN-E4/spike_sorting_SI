@@ -18,23 +18,70 @@ from probeinterface import read_spikeglx
 from probeinterface.plotting import plot_probe
 import numpy as np
 import os
+import glob
 
 
 
 # Paths
 base_input_folder = Path('/home/arthur/Documents/SpikeSorting/Test_20210518/') 
-out_path = Path('/media/storage/spikesorting_output/sorting_pipeline_out_29092021_try/')
+out_path = Path('/media/storage/spikesorting_output/sorting_pipeline_out_10012022/')
+
+
+def find_paths(main_dir, bird, **kwargs):
+    """ Flexible way to find files in subdirectories based on keywords
+    Parameters
+    ----------
+    main_dir: str
+        Give the main directory where the subjects' folders are stored
+
+    subject: str
+        Give the name of the recording to be analyzed
+
+    **kwargs: str
+        Give keywords that will be used in the filtering of paths
+
+    Examples
+    -------
+    Ex.1
+    find_paths(main_dir='/home/arthur/Documents/SpikeSorting/',
+               bird='Test_20210518/',
+               key1='small')
+    Returns
+    -------
+    updatedfilter: list
+        List with path strings
+
+    """
+
+    # Check if arguments are in the correct type
+    assert isinstance(main_dir, str), 'Argument must be str'
+    assert isinstance(bird, str), 'Argument must be str'
+
+    # Filtering step based on keywords
+    firstfilter = glob.glob(main_dir + bird + '/**/*.imec0.ap.bin',
+                            recursive=True)
+
+    updatedfilter = firstfilter
+
+    for _, value in kwargs.items():
+        # Update list accoring to key value
+        updatedfilter = list(filter(lambda path: value in path, updatedfilter))
+
+    final_paths = [Path(path).parent for path in updatedfilter]
+
+    return final_paths
+
 
 
 # Get recordings
-def get_recordings():
+def get_recordings(path):
     """ Function to get the recordings and set the probe from base_input_folder
     
     """
-    data_folder = base_input_folder / 'raw_awake'
 
-    recording = si.SpikeGLXRecordingExtractor(data_folder, stream_id='imec0.ap')
-    probe = read_spikeglx(data_folder / 'raw_awake_01_g0_t0.imec0.ap.meta')
+    recording = si.SpikeGLXRecordingExtractor(path, stream_id='imec0.ap')
+    meta_file = glob.glob(path.as_posix() + '/*.meta')[0]
+    probe = read_spikeglx(meta_file)
     recording = recording.set_probe(probe)
     
     fs = recording.get_sampling_frequency()
@@ -44,20 +91,21 @@ def get_recordings():
 
     ## You have to select the part of the recording by commenting the rest
 
-    # full
-    #~ full_recording = recording
-    #~ recordings['full'] = recording
+    # whole recording
+    recordings['full'] = recording
+    recordings['full'].set_probe(probe)
+
+    # # rest 
+    # t0, t1 = (2000., 2500.) # Time in seconds
+    # frame0, frame1 = int(t0*fs), int(t1*fs)
+    # recordings['rest'] = recording.frame_slice(frame0, frame1)
+    # recordings['rest'].set_probe(probe) # there was an in place here that I removed
     
-    # rest 
-    t0, t1 = (2000., 2500.) # Time in seconds
-    frame0, frame1 = int(t0*fs), int(t1*fs)
-    recordings['rest'] = recording.frame_slice(frame0, frame1)
-    recordings['rest'].set_probe(probe) #  this is due to a SI bug will be removed
-    
+    # # sing
     # t0, t1 = 1000, 1100
     # frame0, frame1 = int(t0*fs), int(t1*fs)    
     # recordings['sing'] = recording.frame_slice(frame0, frame1)
-    # recordings['sing'].set_probe(probe, in_place=True)  #  this is due to a SI bug will be removed
+    # recordings['sing'].set_probe(probe) 
     
 
     return recordings
@@ -78,14 +126,14 @@ def apply_preprocessing_2(rec):
 
 ## You have to select the preprocessing you want by uncommenting
 pre_processings = {
-    'filter' : apply_preprocessing_1,
-    # 'filter+cmr_radius' : apply_preprocessing_2,
+    # 'filter' : apply_preprocessing_1,
+    'filter+cmr_radius' : apply_preprocessing_2,
 }
 
 ## You have to select the sorters you want by uncommenting
 sorter_names = [
     'tridesclous',
-    'spykingcircus',
+    # 'spykingcircus',
     # 'yass'
 ]
 
@@ -94,7 +142,7 @@ sorter_names = [
 sorters_params = {}
 
 sorters_params['tridesclous'] = {
-    #~ 'default' : {},
+#     #~ 'default' : {},
     
     'custom_tdc_1' :  {
         'freq_min': 300.,
@@ -113,20 +161,20 @@ sorters_params['tridesclous'] = {
 
 }
 
-sorters_params['spykingcircus'] = {
-    #~ 'default' : {},
-    'custom_sc_1': {'detect_sign': -1,
-             'adjacency_radius': 100,
-             'detect_threshold': 6,
-             'template_width_ms': 3,
-             'filter': True,
-             'merge_spikes': True,
-             'auto_merge': 0.75,
-             'num_workers': None,
-             'whitening_max_elts': 1000,
-             'clustering_max_elts': 10000
-    }
-}
+# sorters_params['spykingcircus'] = {
+#     #~ 'default' : {},
+#     'custom_sc_1': {'detect_sign': -1,
+#              'adjacency_radius': 100,
+#              'detect_threshold': 6,
+#              'template_width_ms': 3,
+#              'filter': True,
+#              'merge_spikes': True,
+#              'auto_merge': 0.75,
+#              'num_workers': None,
+#              'whitening_max_elts': 1000,
+#              'clustering_max_elts': 10000
+#     }
+# }
 
 # sorters_params['yass'] = {
 #     # 'default' : {},
@@ -157,19 +205,18 @@ sorters_params['spykingcircus'] = {
 ## You have to select the respective docker images you want by uncommenting
 docker_images = {}
 # docker_images['tridesclous'] = 'spikeinterface/tridesclous-base:1.6.3'
-docker_images['spykingcircus'] = 'spikeinterface/spyking-circus-base:1.0.7'
+# docker_images['spykingcircus'] = 'spikeinterface/spyking-circus-base:1.0.7'
 # docker_images['yass'] = 'spikeinterface/yass-base:2.0.0'
 
-
 ## Main function to run sorters in a nested way
-def run_all_sorters():
+def run_all_sorters(path):
     """
     This run all in nested loop:
       * recording
       
       
     """
-    recordings = get_recordings()
+    recordings = get_recordings(path)
     
     for rec_name, rec in recordings.items():
         print(rec_name, rec)
@@ -214,8 +261,8 @@ def run_all_sorters():
 
                     print(sorting.get_num_units())
 
-def run_all_post_processing():
-    recordings = get_recordings()
+def run_all_post_processing(path):
+    recordings = get_recordings(path)
     
     for rec_name, rec in recordings.items():
         #~ print(rec_name, rec)
@@ -243,6 +290,8 @@ def run_all_post_processing():
 
                     # extractor waveforms
                     rec_processed = func(rec)
+                    print(rec_processed.get_probe())
+                    si.plot_probe_map(rec_processed, channel_ids=rec_processed.channel_ids[0:4])
                     wf_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_waveforms')
                     # if wf_folder.is_dir():
                     #     print('Already exists', wf_folder)
@@ -278,12 +327,12 @@ def run_all_post_processing():
                     si.export_report(we, report_folder, remove_if_exists=True,
                             chunk_size=30000, n_jobs=6, progress_bar=True, metrics=metrics)
                     
-                    # export to phy
-                    print('Starting to run export_to_phy')
-                    phy_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_phy_export')
-                    si.export_to_phy(waveform_extractor=we, output_folder=phy_folder, compute_pc_features=False,
-                                    compute_amplitudes=True, chunk_size=30000, n_jobs=6, progress_bar=True,
-                                    remove_if_exists=True)
+                    # # export to phy
+                    # print('Starting to run export_to_phy')
+                    # phy_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_phy_export')
+                    # si.export_to_phy(waveform_extractor=we, output_folder=phy_folder, compute_pc_features=False,
+                    #                 compute_amplitudes=True, chunk_size=30000, n_jobs=6, progress_bar=True,
+                    #                 remove_if_exists=True)
 
                     # save to npz
                     output_sorting_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_sorting_uncurated')
@@ -298,10 +347,12 @@ def open_one_sorting():
     
     folder = out_path / sub_path
     print(folder)
-    
-    
-    sorting_sc = si.TridesclousSortingExtractor(folder)
-    print(sorting_sc.get_num_units())
+     
+    sorting_tdc = si.TridesclousSortingExtractor(folder)
+    print(sorting_tdc.get_num_units())
+
+    # sorting_sc = si.SpykingCircusSortingExtractor(folder)
+    # print(sorting_sc.get_num_units())
     
 
 
@@ -309,9 +360,13 @@ def open_one_sorting():
 
 if __name__ == '__main__':
 
-    # run_all_sorters()
+    # for path in find_paths(main_dir=base_input_folder.as_posix(), bird='', key1='small'):
+    #     print('Working on: ', path)
+
+    #     run_all_sorters(path)
+        
+    #     # run_all_post_processing(path)
+        
     
-    run_all_post_processing()
-    
-    # open_one_sorting()
-    
+    open_one_sorting()
+        

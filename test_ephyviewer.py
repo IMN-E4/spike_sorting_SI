@@ -10,14 +10,17 @@ import numpy as np
 
 # Paths
 base_folder = Path('/home/arthur/Documents/SpikeSorting/Test_20210518/') 
+# base_input = Path('/mnt/data/sam/DataSpikeSorting/eduarda_arthur')
 data_folder = base_folder / 'raw_awake'
-sorting_folder = Path('/media/storage/spikesorting_output/sorting_pipeline_out_29092021_try/')
-sorting_sub_path = 'full/filter+cmr_radius/tridesclous/custom_tdc_1/'
+# data_folder = base_input / 'Rec_1_10_11_2021_g0'
+
+# sorting_folder = Path('/media/storage/spikesorting_output/sorting_pipeline_out_29092021_try/')
+# sorting_sub_path = 'full/filter+cmr_radius/tridesclous/custom_tdc_1/'
 
 
 # Folders
-folder = sorting_folder / sorting_sub_path
-print(folder)
+# folder = sorting_folder / sorting_sub_path
+# print(folder)
 
 
 # # Main recording files
@@ -33,6 +36,7 @@ recording_nidq = si.SpikeGLXRecordingExtractor(data_folder, stream_id='nidq') # 
 
 # Probe
 probe = read_spikeglx(data_folder / 'raw_awake_01_g0_t0.imec0.ap.meta')
+# probe = recording_spike.get_probe()
 #print(probe)
 # recording_spike = recording_spike.set_probe(probe)
 #print(recording)

@@ -89,7 +89,7 @@ def get_recordings(path):
     recordings = {}
     
 
-    ## You have to select the part of the recording by commenting the rest
+    # ## You have to select the part of the recording by commenting the rest
 
     # whole recording
     recordings['full'] = recording
@@ -247,9 +247,9 @@ def run_all_sorters(path):
                     # No docker
                     print('Starting to run sorter without docker')
                     sorting = si.run_sorter(sorter_name, rec_processed,
-                    output_folder=output_folder, verbose=True, 
-                    raise_error=True,
-                    **sparams)
+                        output_folder=output_folder, verbose=True, 
+                        raise_error=True,
+                        **sparams)
 
                     # With docker
                     # print('Starting to run sorter with docker')
@@ -302,7 +302,10 @@ def run_all_post_processing(path):
                                 load_if_exists=True, ms_before=1., ms_after=2.,
                                 max_spikes_per_unit=500,
                                 chunk_size=30000, n_jobs=6, progress_bar=True)
-                    
+
+                    if sorting.unit_ids.size == 0:
+                        continue
+
                     # compute PCs
                     # pc = si.compute_principal_components(we, load_if_exists=True,
                     #             n_components=3, mode='by_channel_local')
@@ -317,15 +320,16 @@ def run_all_post_processing(path):
 
                     # https://spikeinterface.readthedocs.io/en/latest/modules/toolkit/plot_4_curation.html
 
+
                     print('Saving metrics')
                     metric_file_path = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_metrics.csv')
                     metrics.to_csv(metric_file_path)
                     
-                    # export report
-                    print('Starting to run export_report')
-                    report_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_report')
-                    si.export_report(we, report_folder, remove_if_exists=True,
-                            chunk_size=30000, n_jobs=6, progress_bar=True, metrics=metrics)
+                    # # export report
+                    # print('Starting to run export_report')
+                    # report_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_report')
+                    # si.export_report(we, report_folder, remove_if_exists=True,
+                    #         chunk_size=30000, n_jobs=6, progress_bar=True, metrics=metrics)
                     
                     # # export to phy
                     # print('Starting to run export_to_phy')

@@ -21,3 +21,6 @@ Installation steps can be found at: https://docs.google.com/document/d/15mBfYgsd
         3. For some reason, when using the docker images, the output_path doesn't work (it complains about the folder not existing yet). This does not occur when running the local sorters.
         4. Eduarda ran again SS and TDC locally to create new output, they can be found at /media/storage/spikesorting_output/sorting_pipeline_out_29092021_try/rest/filter/
         5. TDC found 12 units, and I was able to get the whole report folder. SS found 396 units, but I could not get the report folder completly (runs out of memory).
+
+
+New updates can be found in online doc file.

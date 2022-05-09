@@ -7,9 +7,10 @@ import shutil
 from pathlib import Path
 import time
 from spikeinterface.sortingcomponents.peak_localization import localize_peaks
-from spikeinterface.sortingcomponents import find_spikes_from_templates
-from spikeinterface.sortingcomponents import detect_peaks, select_peaks
-from spikeinterface.sortingcomponents import find_cluster_from_peaks
+from spikeinterface.sortingcomponents.template_matching import find_spikes_from_templates
+from spikeinterface.sortingcomponents.peak_detection import detect_peaks
+from spikeinterface.sortingcomponents.peak_selection import select_peaks
+from spikeinterface.sortingcomponents.clustering import find_cluster_from_peaks
 from spikeinterface import extract_waveforms, WaveformExtractor
 
 
@@ -60,9 +61,9 @@ def run_sorting_components(recording, tmp_folder, delete_existing=False):
     # step 4 : peak localization
     print('Starting Step 4')
     if (tmp_folder / 'some_peaks_locations.npy').exists():
-        some_peaks_locations = np.load(tmp_folder / 'some_peaks_locations.npy')
+        some_peak_locations = np.load(tmp_folder / 'some_peaks_locations.npy')
     else:
-        some_peak_locations = localize_peaks(recording, some_peaks, method='monopolar_triangulation', **job_kwargs)
+        some_peak_locations = localize_peaks(recording, some_peaks, method='monopolar_triangulation', method_kwargs=dict(optimizer='least_square') , **job_kwargs) #or minimize_with_log_penality
         np.save(tmp_folder /f'some_peaks_locations', some_peak_locations)
 
     # step 5 : clustering
@@ -82,8 +83,8 @@ def run_sorting_components(recording, tmp_folder, delete_existing=False):
             n_components_by_channel=4,
             n_components=4,
             job_kwargs = job_kwargs,
-            waveform_mode="shared_memory",
-            #~ waveform_mode="memmap",
+            #waveform_mode="shared_memory",
+            waveform_mode="memmap",
         )
 
         t0 = time.perf_counter()
@@ -120,7 +121,7 @@ def run_sorting_components(recording, tmp_folder, delete_existing=False):
                     overwrite=False,
                     return_scaled=False,
                     dtype=None,
-                    use_relative_path=False,
+                    use_relative_path=True,
                     **job_kwargs)
 
     # step 7: template matching
@@ -162,7 +163,7 @@ def run_sorting_components(recording, tmp_folder, delete_existing=False):
                     overwrite=False,
                     return_scaled=False,
                     dtype=None,
-                    use_relative_path=False,
+                    use_relative_path=True,
                     **job_kwargs)
     
     print('Starting to run compute_spike_amplitudes')
@@ -176,7 +177,7 @@ def run_sorting_components(recording, tmp_folder, delete_existing=False):
 
     # compute metrics
     print('Starting to run compute_quality_metrics')
-    metrics = si.compute_quality_metrics(we, load_if_exists=True, metric_names=['snr', 'isi_violation', ])
+    metrics = si.compute_quality_metrics(we, load_if_exists=False, metric_names=['snr', 'isi_violation', 'num_spikes', 'firing_rate', 'presence_ratio'])
    
 
     # export report
@@ -188,16 +189,25 @@ def run_sorting_components(recording, tmp_folder, delete_existing=False):
 
 
 def _test_run_sorting_components():
-    base_folder = Path('/data1/ArthursLab/RomansData/Cerebellum/Neuropixel_Recording_18_03_2022_Cb/')
-    data_folder = base_folder / 'Rec_18_03_2022_cb_ansth_g0/Rec_18_03_2022_cb_ansth_g0_imec0/'
-    rec = si.read_spikeglx(data_folder, stream_id='imec0.ap')
+    base_folder = Path('/home/admin/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/Impl_12_04_2022/')
+    data_folder = base_folder / 'Rec_12_04_2022_anesth_g0/'
 
-    #rec = rec.frame_slice(start_frame=0, end_frame=30000*300)
-    rec = si.bandpass_filter(rec, freq_min=300., freq_max=6000.)
-    rec = si.common_reference(rec, reference='local',
-                                        local_radius=(50, 100), operator='median')
+    
+    workingdir = data_folder / 'Rec_12_04_2022_anesth_g0_TEMPdir'
+    preproc_folder = workingdir / 'cached_recording'
+    if preproc_folder.exists():
+        rec = si.load_extractor(preproc_folder)
+    else:
+        rec = si.read_spikeglx(data_folder, stream_id='imec0.ap')
+        fs = rec.get_sampling_frequency()
+        # rec = rec.frame_slice(start_frame=0, end_frame=fs*10000)
+        rec = si.bandpass_filter(rec, freq_min=300., freq_max=6000.)
+        rec = si.common_reference(rec, reference='local',
+                                            local_radius=(50, 100), operator='median')
+        rec = rec.save(format = 'binary', folder=preproc_folder, **job_kwargs)
+        #rec = rec.save(format='zarr', zarr_path=preproc_folder, **job_kwargs)
 
-    workingdir = base_folder / 'Rec_18_03_2022_cb_ansth_g0_TEMPdir'
+
 
 
     # answer = input('temp_folder already exists. Delete and run from scratch? [Y/n]')

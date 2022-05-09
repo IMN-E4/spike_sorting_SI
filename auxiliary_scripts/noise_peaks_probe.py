@@ -6,15 +6,21 @@ from probeinterface.plotting import plot_probe
 
 from probeinterface.plotting import plot_probe
 
-rec_path = Path('/media/e4/data1/CorinnasData/raw_data/bird1/')
+rec_path = Path('/data1/ArthursLab/RomansData/AreaXLMAN/bird2/Neuropixel_Recording_07_03_2022/Rec_11_03_2022_g0/')
 
-preproc_path = rec_path / 'raw_awake_preprocessed/'
+#preproc_path = rec_path / 'raw_awake_preprocessed/'
 
-peaks_path = rec_path / 'raw_awake_peaks/'
+#peaks_path = rec_path / 'raw_awake_peaks/'
+peaks_path = Path('/data1/ArthursLab/RomansData/AreaXLMAN/bird2/Neuropixel_Recording_07_03_2022/Rec_11_03_2022_g0/_peaks/')
+
 
 sorting_folder = rec_path / 'spike_sorting'
 
-rec = si.load_extractor(preproc_path)
+#rec = si.load_extractor(preproc_path)
+rec = si.read_spikeglx(rec_path, stream_id='imec0.ap')
+rec = si.bandpass_filter(rec, freq_min=300., freq_max=6000.)
+rec = si.common_reference(rec, reference='local',
+                                    local_radius=(50, 100), operator='median')
 peaks = np.load(peaks_path / 'peaks.npy')
 
 print(rec)

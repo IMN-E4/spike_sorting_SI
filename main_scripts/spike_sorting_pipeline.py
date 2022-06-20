@@ -21,13 +21,17 @@ from probeinterface.plotting import plot_probe
 import numpy as np
 import os
 import glob
-from spikeinterface.sortingcomponents import detect_peaks
+from spikeinterface.sortingcomponents.peak_detection import detect_peaks
 
 
 
 # Paths
-base_input_folder = Path('/media/e4/data1/CorinnasData/raw_data/') 
+base_input_folder = Path('/home/admin/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/Impl_07_03_2022/Recordings/')
 
+job_kwargs = dict(n_jobs=20,
+                        chunk_memory='200M',
+                        progress_bar=True,
+                        )
 
 def find_paths(main_dir, bird, **kwargs):
     """ Flexible way to find files in subdirectories based on keywords
@@ -99,20 +103,14 @@ def get_recordings(path):
     # ## You have to select the part of the recording by commenting the rest
 
     # whole recording
-    recordings['full'] = recording
-    recordings['full'].set_probe(probe)
+    #recordings['full'] = recording
+    #recordings['full'].set_probe(probe)
 
-    # # rest 
-    # t0, t1 = (2000., 2500.) # Time in seconds
-    # frame0, frame1 = int(t0*fs), int(t1*fs)
-    # recordings['rest'] = recording.frame_slice(frame0, frame1)
-    # recordings['rest'].set_probe(probe) # there was an in place here that I removed
-    
-    # # sing
-    # t0, t1 = 1000, 1100
-    # frame0, frame1 = int(t0*fs), int(t1*fs)    
-    # recordings['sing'] = recording.frame_slice(frame0, frame1)
-    # recordings['sing'].set_probe(probe) 
+    # # Chunk
+    t0, t1 = (40000., 50000.) # Time in seconds
+    frame0, frame1 = int(t0*fs), int(t1*fs)
+    recordings['40000to50000'] = recording.frame_slice(frame0, frame1)
+    recordings['40000to50000'].set_probe(probe) # there was an in place here that I removed
     
 
     return recordings
@@ -233,6 +231,10 @@ def run_all_sorters(path):
         for preprocess_name, func in pre_processings.items():
             print('  ', preprocess_name)
             
+            rec_processed = func(rec)
+            rec_preproc_folder = out_path / rec_name / preprocess_name / 'preproc_rec'
+            rec_saved = rec_processed.save(folder=rec_preproc_folder, **job_kwargs)
+
             for sorter_name in sorter_names:
                 print('    ', sorter_name)
 
@@ -251,11 +253,11 @@ def run_all_sorters(path):
                     #     print('Already exists, so skip it', output_folder)
                     #     continue
                     
-                    rec_processed = func(rec)
+
                     
                     # No docker
                     print('Starting to run sorter without docker')
-                    sorting = si.run_sorter(sorter_name, rec_processed,
+                    sorting = si.run_sorter(sorter_name, rec_saved,
                         output_folder=output_folder, verbose=True, 
                         raise_error=True,
                         **sparams)
@@ -276,6 +278,9 @@ def run_all_post_processing(path):
         for preprocess_name, func in pre_processings.items():
             #~ print('  ', preprocess_name)
             
+            rec_preproc_folder = out_path / rec_name / preprocess_name / 'preproc_rec'
+            rec_processed = si.load_extractor(rec_preproc_folder)
+
             for sorter_name in sorter_names:
                 #~ print('    ', sorter_name)
                 
@@ -295,7 +300,7 @@ def run_all_post_processing(path):
                     print(sorting)
 
                     # extractor waveforms
-                    rec_processed = func(rec)
+
                     print(rec_processed.get_probe())
                     # si.plot_probe_map(rec_processed, channel_ids=rec_processed.channel_ids[0:4])
                     wf_folder = out_path / rec_name / preprocess_name / sorter_name / (param_name + '_waveforms')
@@ -307,7 +312,7 @@ def run_all_post_processing(path):
                     we = si.extract_waveforms(rec_processed, sorting, folder=wf_folder,
                                 load_if_exists=True, ms_before=1., ms_after=2.,
                                 max_spikes_per_unit=500,
-                                chunk_size=30000, n_jobs=30, progress_bar=True)
+                                chunk_size=30000, n_jobs=30, relative_path=True, progress_bar=True)
 
                     if sorting.unit_ids.size == 0:
                         continue
@@ -325,7 +330,9 @@ def run_all_post_processing(path):
                     
                     # compute metrics
                     print('Starting to run compute_quality_metrics')
-                    metrics = si.compute_quality_metrics(we, load_if_exists=True, metric_names=['snr', 'isi_violation', ])
+                    metrics_list = ['snr', 'isi_violation', 'num_spikes', 'firing_rate', 'presence_ratio']
+                    print(metrics_list)
+                    metrics = si.compute_quality_metrics(we, load_if_exists=False, metric_names=metrics_list)
 
                     # https://github.com/AllenInstitute/ecephys_spike_sorting/tree/master/ecephys_spike_sorting/modules/quality_metrics
 
@@ -403,18 +410,18 @@ def dirty_sorter(path, path_to_peaks=None, save=True):
 
 if __name__ == '__main__':
 
-    for path in find_paths(main_dir=base_input_folder.as_posix(), bird='bird1'):
+    for path in find_paths(main_dir=base_input_folder.as_posix(), bird='Rec_7_13_03_2022_g0/'):
         print('Working on: ', path)
         global out_path
-        out_path = Path(path.parent / 'sorting_20220208')
+        out_path = Path(path.parent / 'sorting_20220504')
         print(out_path)
 
-        # # get_recordings(path)
+        # get_recordings(path)
 
-        # run_all_sorters(path)
+        run_all_sorters(path)
         
-        # run_all_post_processing(path)
-        dirty_sorter(path, path_to_peaks=None,  save=True)
+        run_all_post_processing(path)
+        # dirty_sorter(path, path_to_peaks=None,  save=True)
         
     # open_one_sorting()
         

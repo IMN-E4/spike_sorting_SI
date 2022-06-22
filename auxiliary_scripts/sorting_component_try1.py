@@ -61,7 +61,7 @@ def run_sorting_components(recording, tmp_folder, delete_existing=False):
     # step 4 : peak localization
     print('Starting Step 4')
     if (tmp_folder / 'some_peaks_locations.npy').exists():
-        some_peaks_locations = np.load(tmp_folder / 'some_peaks_locations.npy')
+        some_peak_locations = np.load(tmp_folder / 'some_peaks_locations.npy')
     else:
         some_peaks_locations = localize_peaks(recording, some_peaks, method='monopolar_triangulation', method_kwargs=dict(optimizer='least_square') , **job_kwargs) #or minimize_with_log_penality
         np.save(tmp_folder /'some_peaks_locations.npy', some_peaks_locations)

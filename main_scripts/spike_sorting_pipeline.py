@@ -18,15 +18,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
+
+from probeinterface.plotting import plot_probe
 import spikeinterface.full as si
 from spikeinterface.sortingcomponents.peak_detection import detect_peaks
+from spikeinterface.sortingcomponents.peak_localization import localize_peaks
+
+from datetime import datetime
 
 # this centralise params at the same place
 from params import *
-
 from experimental_sorting import run_experimental_sorting
+from recording_list import recording_list
+from myfigures import *
 
 
+########### Prep Functions
 def apply_preprocess(rec):
     """
     Apply the lazy preprocessing chain.
@@ -35,34 +42,52 @@ def apply_preprocess(rec):
     rec = si.common_reference(rec, reference='local', local_radius=(50, 100))
     return rec
 
-
-
-def run_sorting_pipeline(spikeglx_folder, time_range=None):
+def fix_time_range(spikeglx_folder, time_range):
     rec = si.read_spikeglx(spikeglx_folder, stream_id='imec0.ap')
     print(rec)
 
     fs = rec.get_sampling_frequency()
-
+ 
     if time_range is None:
         duration = rec.get_num_frames() / rec.get_sampling_frequency()
         time_range = (0., duration)
+        
+
     else:
         time_range = tuple(float(e) for e in time_range)
-
+ 
         frame_range = (int(t * fs) for t in time_range)
         rec = rec.frame_slice(*frame_range)
+
+    return rec, time_range
     
-    # print(rec)
 
-
+def get_workdir_folder(spikeglx_folder, time_range):
+    """
+    Common function to get workdir
+    """
+    
     name = spikeglx_folder.stem
     implementation_name = spikeglx_folder.parents[1].stem
-
-    working_folder = base_sorting_cache_folder / implementation_name / f'{name} - {time_range[0]}to{time_range[1]}'
-
+    time_stamp = datetime.now().strftime('%Y-%m')
+    working_folder = base_sorting_cache_folder / implementation_name / 'sorting_cache' / f'{time_stamp}-{name}-{time_range[0]}to{time_range[1]}'
     working_folder.mkdir(exist_ok=True, parents=True)
+    print(working_folder)
     
+    return working_folder
 
+
+########### Preprocess & Check
+def get_preprocess_recording(spikeglx_folder, time_range=None):
+    """
+    Function to get preprocessed recording.
+    """
+    print(f'first time range is {time_range}')
+    rec, time_range = fix_time_range(spikeglx_folder, time_range=time_range)
+
+    print(f'second time range is {time_range}')
+    working_folder = get_workdir_folder(spikeglx_folder, time_range=time_range)
+    
     # preprocessing
     preprocess_folder = working_folder / 'preprocess_recording'
     if preprocess_folder.exists():
@@ -74,13 +99,56 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
         rec_preprocess.dump_to_json(working_folder / 'preprocess.json')
         rec_preprocess = rec_preprocess.save(format='binary', folder=preprocess_folder, **job_kwargs)
 
+    return rec_preprocess, working_folder
+
+
+def run_pre_sorting_checks(spikeglx_folder, time_range=None):
+
+    # print(spikeglx_folder)
+
+    rec_preprocess, working_folder = get_preprocess_recording(spikeglx_folder, time_range=time_range)
+    print(rec_preprocess)
+
+    noise_file = working_folder / 'noise_levels.npy'
+    if noise_file.exists():
+        noise_levels = np.load(noise_file)
+    else:
+        noise_levels = si.get_noise_levels(rec_preprocess, return_scaled=False)
+        np.save(noise_file, noise_levels)
+
+    peaks_file = working_folder / 'peaks.npy'
+    if peaks_file.exists():
+        peaks = np.load(peaks_file)
+    else:
+        peaks = detect_peaks(rec_preprocess, noise_levels=noise_levels, **peak_detection_params, **job_kwargs)
+        np.save(peaks_file, peaks)
+    print(peaks.shape)
+
+    location_file = working_folder / 'peak_locations.npy'
+    if location_file.exists():
+        peak_locations = np.load(location_file)
+    else:
+        peak_locations = localize_peaks(rec_preprocess, peaks, **peak_location_params, **job_kwargs)
+        np.save(location_file, peak_locations)
+    print(peak_locations.shape)
+
+    name = Path(spikeglx_folder).stem
+    
+    figure_folder = working_folder / 'figures'
+    figure_folder.mkdir(exist_ok=True, parents=True)
+
+    plot_drift(peaks, rec_preprocess, peak_locations, name, figure_folder)
+    plot_peaks_axis(rec_preprocess, peak_locations, name, figure_folder)
+    plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, figure_folder)
+    plot_noise(rec_preprocess, figure_folder, with_contact_color=False, with_interpolated_map=True)
+
+
+########### Run sorting
+def run_sorting_pipeline(spikeglx_folder, time_range=None):
+
+    rec_preprocess, working_folder = get_preprocess_recording(spikeglx_folder, time_range=time_range)
+
     # run some sorters
-    sorters = {
-        # 'tridesclous': tridesclous_params,
-        'kilosort2_5' : kilosort2_5_params,
-        # 'kilosort2' : kilosort2_params,
-        # 'experimental_sorter1': dict(delete_existing=True),
-    }
     for sorter_name, params in sorters.items():
         sorting_folder = working_folder / f'sorting_{sorter_name}'
         if sorting_folder.exists():
@@ -129,10 +197,9 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
 
 
 
-# def postprocessing_sorting(...):
 
-
-
+########### Post-processing
+# def run_postprocessing_sorting(...):
     # compute waveforms for clean
     #  /data1
 
@@ -141,18 +208,46 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
 
 
 
-
-
-if __name__ == '__main__':
-
+########### Tests
+def test_run_sorting_pipeline():
     # need for docker debug
     os.environ["SPIKEINTERFACE_DEV_PATH"] = '/home/analysis_user/Python-related/GitHub/spikeinterface'
     # print(os.getenv('SPIKEINTERFACE_DEV_PATH'))
-
-    spikeglx_folder = base_input_folder / 'Rec_5_11_03_2022_g0'
-    time_range = (10000., 11000.)
-    #  time_range = None
+    
+    spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_2_19_11_2021_g0'
+    print(spikeglx_folder)
+    time_range = None
     run_sorting_pipeline(spikeglx_folder, time_range=time_range)
+
+
+
+def test_run_pre_sorting_checks():    
+    spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_2_19_11_2021_g0'
+    # spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_1_18_11_2021_g0'
+    print(spikeglx_folder)
+    run_pre_sorting_checks(spikeglx_folder, time_range=None)
+
+
+
+def run_all():
+    for implementation_name, name, time_range in recording_list:
+        spikeglx_folder = base_input_folder / implementation_name / 'Recordings' / name
+        print(spikeglx_folder)
+        # run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
+
+        # run_sorting_pipeline(spikeglx_folder, time_range=time_range)
+
+        # run_postprocessing_sorting()
+
+
+
+
+if __name__ == '__main__':
+    test_run_sorting_pipeline()
+    # test_run_pre_sorting_checks()
+
+    # run_all()
+
 
 
 

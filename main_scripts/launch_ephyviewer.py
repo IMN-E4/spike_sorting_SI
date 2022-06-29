@@ -11,14 +11,13 @@ import numpy as np
 # Choose sources:
 ap = False
 raw_lfp = False
-mic = False
+mic = True
 filtered_lfp = False
 sorting = False
-pulses = True
 
 # Paths
-base_folder = Path('/home/analysis_user/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/Impl_07_03_2022/Recordings/')
-data_folder = base_folder / 'Rec_5_11_03_2022_g0'
+base_folder = Path('/home/analysis_user/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/Imp_10_11_2021/Recordings/')
+data_folder = base_folder / 'Rec_2_19_11_2021_g0'
 
 print(data_folder)
 

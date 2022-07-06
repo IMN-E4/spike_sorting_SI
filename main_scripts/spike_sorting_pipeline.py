@@ -13,6 +13,7 @@ Author: Samuel, Eduarda
 """
 
 # Packages
+import shutil
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,7 +71,7 @@ def get_workdir_folder(spikeglx_folder, time_range):
     name = spikeglx_folder.stem
     implementation_name = spikeglx_folder.parents[1].stem
     time_stamp = datetime.now().strftime('%Y-%m')
-    working_folder = base_sorting_cache_folder / implementation_name / 'sorting_cache' / f'{time_stamp}-{name}-{time_range[0]}to{time_range[1]}'
+    working_folder = base_sorting_cache_folder / implementation_name / 'sorting_cache' / f'2022-06-23-{name}-{time_range[0]}to{time_range[1]}'
     working_folder.mkdir(exist_ok=True, parents=True)
     print(working_folder)
     
@@ -199,22 +200,55 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
 
 
 ########### Post-processing
-# def run_postprocessing_sorting(...):
-    # compute waveforms for clean
-    #  /data1
+def run_postprocessing_sorting(spikeglx_folder, time_range=None):
 
-    # copy back to the NASS
+    rec_preprocess, working_folder = get_preprocess_recording(spikeglx_folder, time_range=time_range)
+    name = spikeglx_folder.stem
+    implementation_name = spikeglx_folder.parents[1].stem
+    for sorter_name, params in sorters.items():
+        wf_folder = working_folder / f'waveforms_{sorter_name}' 
+        we = si.WaveformExtractor.load_from_folder(wf_folder)
+        sorting_no_dup = si.remove_redundant_units(we, remove_strategy='minimum_shift')
+        # print(sorting_no_dup.unit_ids)
+
+        metrics = si.compute_quality_metrics(we, load_if_exists=True)
+        our_query = f"snr < {cleaning_params['snr_threshold']} | firing_rate < {cleaning_params['firing_rate']}"
+        remove_unit_ids = metrics.query(our_query).index
+        # print('remove_unit_ids', remove_unit_ids)
 
 
+
+        clean_sorting = sorting_no_dup.remove_units(remove_unit_ids)
+        # print(clean_sorting.unit_ids)
+
+     
+        sorting_clean_folder = base_input_folder / implementation_name / 'Sortings_clean' / name / sorter_name
+        if sorting_clean_folder.exists():
+            print('remove exists clean', sorting_clean_folder)
+            shutil.rmtree(sorting_clean_folder)
+        wf_clean_folder = working_folder / f'waveforms_clean_{sorter_name}'
+        if wf_clean_folder.exists():
+            shutil.rmtree(wf_clean_folder)
+
+        clean_sorting = clean_sorting.save(folder=sorting_clean_folder)
+
+        we_clean = si.extract_waveforms(rec_preprocess, clean_sorting, folder=wf_clean_folder,
+                    load_if_exists=False, **waveform_params, **job_kwargs)
+        print(we_clean)
+
+        si.compute_spike_amplitudes(we_clean,  load_if_exists=True, **amplitude_params, **job_kwargs)
+
+        metrics_list = ['snr', 'isi_violation', 'num_spikes', 'firing_rate', 'presence_ratio']
+        si.compute_quality_metrics(we_clean, load_if_exists=True, metric_names=metrics_list)
 
 
 ########### Tests
 def test_run_sorting_pipeline():
-    # need for docker debug
+    # need for docker debugtest_run_postprocessing_sorting
     os.environ["SPIKEINTERFACE_DEV_PATH"] = '/home/analysis_user/Python-related/GitHub/spikeinterface'
     # print(os.getenv('SPIKEINTERFACE_DEV_PATH'))
-    
-    spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_2_19_11_2021_g0'
+    # cd sorted
+    spikeglx_folder = base_input_folder / 'Imp_10_11_2021'
     print(spikeglx_folder)
     time_range = None
     run_sorting_pipeline(spikeglx_folder, time_range=time_range)
@@ -222,31 +256,42 @@ def test_run_sorting_pipeline():
 
 
 def test_run_pre_sorting_checks():    
-    spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_2_19_11_2021_g0'
-    # spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_1_18_11_2021_g0'
+    # spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_2_19_11_2021_g0'
+    spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_1_18_11_2021_g0'
     print(spikeglx_folder)
     run_pre_sorting_checks(spikeglx_folder, time_range=None)
 
 
+def test_run_postprocessing_sorting():
+    spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_1_18_11_2021_g0'
+    run_postprocessing_sorting(spikeglx_folder, time_range=None)
 
+
+
+########### Run Batch
 def run_all():
     for implementation_name, name, time_range in recording_list:
         spikeglx_folder = base_input_folder / implementation_name / 'Recordings' / name
+        
         print(spikeglx_folder)
-        # run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
 
-        # run_sorting_pipeline(spikeglx_folder, time_range=time_range)
+        run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
 
-        # run_postprocessing_sorting()
+        run_sorting_pipeline(spikeglx_folder, time_range=time_range)
+
+        run_postprocessing_sorting(spikeglx_folder, time_range=time_range)
 
 
 
 
 if __name__ == '__main__':
-    test_run_sorting_pipeline()
+    # test_run_sorting_pipeline()
     # test_run_pre_sorting_checks()
+    # test_run_postprocessing_sorting()
 
-    # run_all()
+    run_all()
+
+
 
 
 

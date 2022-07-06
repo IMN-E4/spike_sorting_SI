@@ -17,6 +17,7 @@ waveform_params = dict(
     ms_before=1.,
     ms_after=2.,
     max_spikes_per_unit=500,
+    use_relative_path=True,
 )
 
 peak_sign='neg'
@@ -32,7 +33,6 @@ peak_detection_params = dict(
     method='locally_exclusive',
     peak_sign=peak_sign,
     detect_threshold=5.,
-    n_shifts=10,
     local_radius_um=150,
 )
 
@@ -44,6 +44,10 @@ peak_location_params = dict(
     method_kwargs= dict(local_radius_um=150, max_distance_um=1000, optimizer='minimize_with_log_penality'),
 )
 
+cleaning_params = dict(
+    snr_threshold=5.,
+    firing_rate=0.01,
+)
 
 
 tridesclous_params = {
@@ -73,9 +77,14 @@ kilosort2_5_params = {
     'docker_image' : 'spikeinterface/kilosort2_5-compiled-base',
 }
 
+spykingcircus2_params = {
+
+}
+
 sorters = {
         'tridesclous': tridesclous_params,
-        'kilosort2_5' : kilosort2_5_params,
+        #'kilosort2_5' : kilosort2_5_params,
         # 'kilosort2' : kilosort2_params,
         # 'experimental_sorter1': dict(delete_existing=True),
-    }
+        'spykingcircus2' : spykingcircus2_params,
+}

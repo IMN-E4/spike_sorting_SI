@@ -13,6 +13,7 @@ Author: Samuel, Eduarda
 """
 
 # Packages
+from asyncore import file_dispatcher
 import shutil
 import os
 import matplotlib.pyplot as plt
@@ -22,17 +23,21 @@ from pathlib import Path
 
 from probeinterface.plotting import plot_probe
 import spikeinterface.full as si
+import spikeinterface.widgets as sw
 from spikeinterface.sortingcomponents.peak_detection import detect_peaks
 from spikeinterface.sortingcomponents.peak_localization import localize_peaks
 
 from datetime import datetime
 
-# this centralise params at the same place
+#  # this centralise params at the same place
 from params import *
 from experimental_sorting import run_experimental_sorting
 from recording_list import recording_list
 from myfigures import *
 
+# FOR NWB TEST: but dependencies not matching!
+# from nwb_conversion_tools import SpikeGLXRecordingInterface
+# from pynwb import NWBHDF5IO
 
 ########### Prep Functions
 def apply_preprocess(rec):
@@ -71,7 +76,7 @@ def get_workdir_folder(spikeglx_folder, time_range):
     name = spikeglx_folder.stem
     implementation_name = spikeglx_folder.parents[1].stem
     time_stamp = datetime.now().strftime('%Y-%m')
-    working_folder = base_sorting_cache_folder / implementation_name / 'sorting_cache' / f'2022-06-23-{name}-{time_range[0]}to{time_range[1]}'
+    working_folder = base_sorting_cache_folder / implementation_name / 'sorting_cache' / f'{time_stamp}-{name}-{time_range[0]}to{time_range[1]}'
     working_folder.mkdir(exist_ok=True, parents=True)
     print(working_folder)
     
@@ -94,6 +99,9 @@ def get_preprocess_recording(spikeglx_folder, time_range=None):
     if preprocess_folder.exists():
         print('Already preprocessed')
         rec_preprocess = si.load_extractor(preprocess_folder)
+    elif (working_folder / 'preprocess.json').exists():
+        rec_preprocess = si.load_extractor(working_folder / 'preprocess.json')
+        rec_preprocess = rec_preprocess.save(format='binary', folder=preprocess_folder, **job_kwargs)
     else:
         print('Run/save preprocessing')
         rec_preprocess = apply_preprocess(rec)
@@ -157,6 +165,7 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
             sorting = si.load_extractor(sorting_folder)
         else:
             if sorter_name != 'experimental_sorter1':
+                print(f'Computing {sorter_name}')
                 sorting = si.run_sorter(sorter_name, rec_preprocess,
                                     output_folder=working_folder / f'raw_sorting_{sorter_name}',
                                     delete_output_folder=True,
@@ -164,6 +173,7 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
                                     **params
                                     )
             else:
+                print(f'Computing {sorter_name}')
                 sorting = run_experimental_sorting(rec_preprocess,
                                                 output_folder=working_folder / f'raw_sorting_{sorter_name}',
                                                 job_kwargs=job_kwargs,
@@ -186,6 +196,10 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
 
         metrics_list = ['snr', 'isi_violation', 'num_spikes', 'firing_rate', 'presence_ratio']
         si.compute_quality_metrics(we, load_if_exists=False, metric_names=metrics_list)
+
+        # fig = plt.figure(figsize=(20, 10))
+        # sw.plot_amplitudes_distribution(we, figure=fig)
+        # plt.show()
 
 
     # report : this is super slow!!!
@@ -242,6 +256,15 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
         si.compute_quality_metrics(we_clean, load_if_exists=True, metric_names=metrics_list)
 
 
+### re build the preprocess folder
+
+def rebuild_preprocess():
+    spikeglx_folder = base_input_folder / 'Imp_16_08_2022/Recordings/Rec_18_08_2022_g0'
+    time_range = None
+    get_preprocess_recording(spikeglx_folder, time_range=time_range)
+
+
+
 ########### Tests
 def test_run_sorting_pipeline():
     # need for docker debugtest_run_postprocessing_sorting
@@ -266,6 +289,24 @@ def test_run_postprocessing_sorting():
     spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_1_18_11_2021_g0'
     run_postprocessing_sorting(spikeglx_folder, time_range=None)
 
+def test_nwb_conversion():
+    spikeglx_folder = base_input_folder / 'Imp_16_08_2022/Recordings/Rec_19_08_2022_g0'
+    file = spikeglx_folder / 'Rec_19_08_2022_g0_t0.imec0.ap.bin'
+    # source_data = file_path=file.as_posix()
+    spike_glx_RI = SpikeGLXRecordingInterface(file)
+    metadata = spike_glx_RI.get_metadata()
+    print(spike_glx_RI)
+    print(metadata)
+
+    output = save_path=spikeglx_folder/'test.nwb'
+    # spike_glx_RI.run_conversion(output, metadata=metadata)
+
+    with NWBHDF5IO(output, 'r', load_namespaces=True) as io:
+        nwbfile = io.read()
+        return nwbfile
+        from nwbwidgets import nwb2widget
+
+        # nwb2widget(nwbfile)
 
 
 ########### Run Batch
@@ -275,11 +316,11 @@ def run_all():
         
         print(spikeglx_folder)
 
-        run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
+        # run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
 
         run_sorting_pipeline(spikeglx_folder, time_range=time_range)
 
-        run_postprocessing_sorting(spikeglx_folder, time_range=time_range)
+        # run_postprocessing_sorting(spikeglx_folder, time_range=time_range)
 
 
 
@@ -288,8 +329,10 @@ if __name__ == '__main__':
     # test_run_sorting_pipeline()
     # test_run_pre_sorting_checks()
     # test_run_postprocessing_sorting()
-
+    # test_nwb_conversion()
     run_all()
+
+    # rebuild_preprocess()
 
 
 

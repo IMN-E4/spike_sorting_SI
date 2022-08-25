@@ -5,7 +5,7 @@ import numpy as np
 
 
 # visualize drift over time
-def plot_drift(peaks, rec_preprocess, peak_locations, name, figure_folder, time_range=None, save=True):
+def plot_drift(peaks, rec_preprocess, peak_locations, name, time_range=None):
     fs = rec_preprocess.get_sampling_frequency()
     fig, ax = plt.subplots()
     
@@ -18,10 +18,8 @@ def plot_drift(peaks, rec_preprocess, peak_locations, name, figure_folder, time_
         
     ax.scatter(x, y, s=1, color='k', alpha=0.05)
     ax.set_title(name)
-    if save:
-        fig.savefig(figure_folder / 'peak_drift.png')
 
-def plot_peaks_axis(rec_preprocess, peak_locations, name, figure_folder, peaks=None, time_range=None, save=True):
+def plot_peaks_axis(rec_preprocess, peak_locations, name, peaks=None, time_range=None):
     # visualize peaks clouds on the probe ( , x, z)
     fs = rec_preprocess.get_sampling_frequency()
     channel_locs = rec_preprocess.get_channel_locations()
@@ -51,10 +49,7 @@ def plot_peaks_axis(rec_preprocess, peak_locations, name, figure_folder, peaks=N
         y_min += y_max
         y_max = y_max*2
 
-    if save:
-        fig.savefig(figure_folder / 'peak_locations.png')
-
-def plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, figure_folder, time_range=None, save=True):
+def plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, time_range=None):
     # visualize peaks clouds on the probe
     fs = rec_preprocess.get_sampling_frequency()
     channel_locs = rec_preprocess.get_channel_locations()
@@ -78,13 +73,16 @@ def plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, figure_fold
         y_min += y_max
         y_max = y_max*2
         ax.set_aspect(0.5)
-    if save:
-        fig.savefig(figure_folder / 'peak_activity.png')
 
-
-def plot_noise(rec_preprocess, figure_folder, with_contact_color=False, with_interpolated_map=True, t_window=None, save=True):
+def plot_noise(rec_preprocess, with_contact_color=False, with_interpolated_map=True, time_range=None):
     # visualize noise clouds on the probe
     probe = rec_preprocess.get_probe()
+    fs = rec_preprocess.get_sampling_frequency()
+    
+    if time_range is not None:
+        rec_preprocess = rec_preprocess.frame_slice(start_frame=time_range[0]*fs, end_frame=time_range[1]*fs)
+        print(rec_preprocess)
+        
     noise_levels_scaled = si.get_noise_levels(rec_preprocess, return_scaled=True)
     channel_locs = rec_preprocess.get_channel_locations()
     y_max = np.max(channel_locs[:, 1])/2
@@ -107,14 +105,11 @@ def plot_noise(rec_preprocess, figure_folder, with_contact_color=False, with_int
             num_pixel=None, method='linear',
             xlims=None, ylims=None)
             im = ax.imshow(image, extent=xlims + ylims, origin='lower', alpha=0.5)
-            # im.set_clim(0, max(
+            im.set_clim(0, 20)
             artists = artists + (im,)
         
         ax.set_ylim(y_min, y_max)
         y_min += y_max
         y_max = y_max*2
         ax.set_aspect(0.5)
-
     fig.colorbar(artists[0])
-    if save:
-        fig.savefig(figure_folder / 'noise_plot.png')

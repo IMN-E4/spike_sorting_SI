@@ -5,8 +5,6 @@ import spikeinterface.full as si
 from probeinterface import read_spikeglx
 from probeinterface.plotting import plot_probe
 import numpy as np
-
-
 from ephyviewer.myqt import QT
 
 
@@ -17,7 +15,6 @@ def open_ephyviewer_mainwindow(spikeglx_folder):
     raw_lfp = False
     mic = True
     filtered_lfp = False
-    sorting = False
 
     print(spikeglx_folder)
 
@@ -27,16 +24,7 @@ def open_ephyviewer_mainwindow(spikeglx_folder):
 
     ### Sources
     if ap:   
-        recording_spike = si.SpikeGLXRecordingExtractor(spikeglx_folder, stream_id='imec0.ap') # ap file
-
-        #~ locations = recording_spike.get_channel_locations()
-        #~ print(locations)
-        #~ order = np.argsort(locations[:, 1])
-        #~ chan_ids_ordered = recording_spike.channel_ids[order]
-        #~ print(order)
-        #~ print(chan_ids_ordered)
-        #~ recording_spike_ordered = recording_spike.channel_slice(chan_ids_ordered)        
-        
+        recording_spike = si.SpikeGLXRecordingExtractor(spikeglx_folder, stream_id='imec0.ap') # ap file        
         sig_source0 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_spike)
         view0 = ephyviewer.TraceViewer(source=sig_source0, name='ap') # Trace of ap signal
         
@@ -65,20 +53,23 @@ def open_ephyviewer_mainwindow(spikeglx_folder):
 
     if mic:
         recording_nidq = si.SpikeGLXRecordingExtractor(spikeglx_folder, stream_id='nidq') # microphone
-        #~ print(recording_nidq.get_sampling_frequency())
-        #~ print(recording_nidq)
         sig_source2 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_nidq) # microphone
         view2 = ephyviewer.SpectrogramViewer(source=sig_source2, name='signals nidq') # Trace of Microphone
         win.add_view(view2)
         
         view2.params['colormap'] = 'inferno'
+        view2.params.scalogram['overlapratio'] = 0.2
+        view2.params.scalogram['binsize'] = 0.02
+        
         
         for c in range(recording_nidq.get_num_channels()):
             if c == 0:
                 view2.by_channel_params[f'ch{c}', 'visible'] = True
+                view2.by_channel_params[f'ch{c}', 'clim_min'] = -30
+                view2.by_channel_params[f'ch{c}', 'clim_max'] = 60
             else:
                 view2.by_channel_params[f'ch{c}', 'visible'] = False
-
+      
     if filtered_lfp:
         recording_lf = si.SpikeGLXRecordingExtractor(spikeglx_folder, stream_id='imec0.lf') # lfp
         recording_f = si.bandpass_filter(recording_lf, 50, 180)
@@ -92,6 +83,13 @@ def open_ephyviewer_mainwindow(spikeglx_folder):
     win.show()
     app.exec_()
 
+def select_streams():
+    # Want to add a little GUI that I can indicate which streams you want to initialize. That would change 
+    # Choose sources:
+    ap = False
+    raw_lfp = False
+    mic = True
+    filtered_lfp = False
 
 
 def select_folder_and_open():
@@ -110,9 +108,8 @@ def select_folder_and_open():
 
 
 if __name__ == '__main__':
-    spikeglx_folder = '/home/samuel/DataSpikeSorting/eduarda/raw_files/Imp_16_08_2022/Recordings/Rec_18_08_2022_g0/'
-    open_ephyviewer_mainwindow(spikeglx_folder)
-    
-    #~ select_folder_and_open()
+    #spikeglx_folder = 'D:/Neuropixel_Recordings/Rec_18_08_2022_g0'
+    #open_ephyviewer_mainwindow(spikeglx_folder)
+    select_folder_and_open()
     
     

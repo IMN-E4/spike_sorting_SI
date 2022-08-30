@@ -19,7 +19,7 @@ def correct_metadata(output_path_file, rec_name, rec_ap_new, rec_lf_new, rec_mic
         meta = file_path.read_text().splitlines()
         file_size_bytes = meta[5].split('=')
         file_time_secs = meta[6].split('=')
-        new_val_bytes = os.path.getsize(file_path.as_posix().replace('.meta', ''))
+        new_val_bytes = os.path.getsize(file_path.as_posix().replace('.meta', '.bin'))
         new_val_time = rec.get_total_duration()
         file_size_bytes[1] = new_val_bytes
         file_time_secs[1] = new_val_time
@@ -55,11 +55,11 @@ def export_files(rec_ap, rec_lf, rec_mic, original_path, output_path, time_range
     output_path_file.mkdir()
     
     # Save new recs
-    si.write_binary_recording(rec_ap_new, file_paths=[output_path_file / (rec_name+'_t0.imec0.ap')], dtype='int16', add_file_extension=False,
+    si.write_binary_recording(rec_ap_new, file_paths=[output_path_file / (rec_name+'_t0.imec0.ap.bin')], dtype='int16', add_file_extension=False,
                            verbose=False, byte_offset=0, auto_cast_uint=False,  **job_kwargs_local)
-    si.write_binary_recording(rec_mic_new, file_paths=[output_path_file / (rec_name+'_t0.nidq')], dtype='int16', add_file_extension=False,
+    si.write_binary_recording(rec_mic_new, file_paths=[output_path_file / (rec_name+'_t0.nidq.bin')], dtype='int16', add_file_extension=False,
                            verbose=False, byte_offset=0, auto_cast_uint=False, **job_kwargs_local)
-    si.write_binary_recording(rec_lf_new, file_paths=[output_path_file / (rec_name+'_t0.imec0.lf')], dtype='int16', add_file_extension=False,
+    si.write_binary_recording(rec_lf_new, file_paths=[output_path_file / (rec_name+'_t0.imec0.lf.bin')], dtype='int16', add_file_extension=False,
                            verbose=False, byte_offset=0, auto_cast_uint=False, **job_kwargs_local)
     
     # Move metadata
@@ -69,6 +69,10 @@ def export_files(rec_ap, rec_lf, rec_mic, original_path, output_path, time_range
         shutil.copy(file, output_path_file/file.parts[-1])
         
     correct_metadata(output_path_file, rec_name, rec_ap_new, rec_lf_new, rec_mic_new)
+    
+    readme_path = output_path_file / 'readme.txt'
+    with open(readme_path, 'w') as fp:
+                   fp.write(f'This recording is not the original, but a chunked version from {t0} to {t1} seconds') 
     
     
     

@@ -18,6 +18,7 @@ def plot_drift(peaks, rec_preprocess, peak_locations, name, time_range=None):
         
     ax.scatter(x, y, s=1, color='k', alpha=0.05)
     ax.set_title(name)
+    plt.show()
 
 def plot_peaks_axis(rec_preprocess, peak_locations, name, peaks=None, time_range=None):
     # visualize peaks clouds on the probe ( , x, z)
@@ -36,6 +37,7 @@ def plot_peaks_axis(rec_preprocess, peak_locations, name, peaks=None, time_range
         mask = (peaks_in_secs > time_range[0]) & (peaks_in_secs < time_range[1])
         x = x[mask]
         y = y[mask]
+    
 
 
     for number in range(2):
@@ -48,7 +50,9 @@ def plot_peaks_axis(rec_preprocess, peak_locations, name, peaks=None, time_range
         ax.set_ylim(y_min, y_max)
         y_min += y_max
         y_max = y_max*2
-
+    plt.show()
+    
+    
 def plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, time_range=None):
     # visualize peaks clouds on the probe
     fs = rec_preprocess.get_sampling_frequency()
@@ -73,7 +77,8 @@ def plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, time_range=
         y_min += y_max
         y_max = y_max*2
         ax.set_aspect(0.5)
-
+    plt.show()
+    
 def plot_noise(rec_preprocess, with_contact_color=False, with_interpolated_map=True, time_range=None):
     # visualize noise clouds on the probe
     probe = rec_preprocess.get_probe()
@@ -81,7 +86,6 @@ def plot_noise(rec_preprocess, with_contact_color=False, with_interpolated_map=T
     
     if time_range is not None:
         rec_preprocess = rec_preprocess.frame_slice(start_frame=time_range[0]*fs, end_frame=time_range[1]*fs)
-        print(rec_preprocess)
         
     noise_levels_scaled = si.get_noise_levels(rec_preprocess, return_scaled=True)
     channel_locs = rec_preprocess.get_channel_locations()
@@ -113,3 +117,4 @@ def plot_noise(rec_preprocess, with_contact_color=False, with_interpolated_map=T
         y_max = y_max*2
         ax.set_aspect(0.5)
     fig.colorbar(artists[0])
+    plt.show()

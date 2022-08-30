@@ -1,6 +1,7 @@
 job_kwargs = dict(n_jobs=20 ,
                   chunk_duration='1s',
-                  progress_bar=True,
+                  progress_bar=False,
+                  verbose=True
                   )
 
 peak_sign='neg'

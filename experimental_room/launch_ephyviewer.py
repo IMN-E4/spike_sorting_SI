@@ -95,13 +95,13 @@ def select_streams():
 
 def select_folder_and_open():
     app = ephyviewer.mkQApp()
-    #~ dia = QT.QFileDialog(fileMode=QT.QFileDialog.Directory, acceptMode=QT.QFileDialog.AcceptOpen)
-    #~ dia.setViewMode(QT.QFileDialog.Detail)
-    #~ if dia.exec_():
-        #~ folder_names = dia.selectedFiles()
-        #~ folder_name = folder_names[0]
-    #~ else:
-        #~ return
+    dia = QT.QFileDialog(fileMode=QT.QFileDialog.Directory, acceptMode=QT.QFileDialog.AcceptOpen)
+    dia.setViewMode(QT.QFileDialog.Detail)
+    if dia.exec_():
+        folder_names = dia.selectedFiles()
+        folder_name = folder_names[0]
+    else:
+        return
     
     
 

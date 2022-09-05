@@ -6,15 +6,16 @@ from probeinterface import read_spikeglx
 from probeinterface.plotting import plot_probe
 import numpy as np
 from ephyviewer.myqt import QT
+from ephyviewer.tools import ParamDialog
 
 
-def open_ephyviewer_mainwindow(spikeglx_folder):
+def open_ephyviewer_mainwindow(spikeglx_folder,     
+    ap = False,
+    raw_lfp = False,
+    mic = True,
+    filtered_lfp = False,):
 
     # Choose sources:
-    ap = False
-    raw_lfp = False
-    mic = True
-    filtered_lfp = False
 
     print(spikeglx_folder)
 
@@ -102,9 +103,27 @@ def select_folder_and_open():
     else:
         return
     
+    
+
+
+    params = [
+        {'name': 'mic', 'type': 'bool', 'value': True},
+        {'name': 'ap', 'type': 'bool', 'value': False},
+        {'name': 'raw_lfp', 'type': 'bool', 'value': False},
+        {'name': 'filtered_lfp', 'type': 'bool', 'value': False},
+    ]
+    dia = ParamDialog(params, title='Select streams')
+    if dia.exec_():
+        kwargs_streams = dia.get()
+        
+    else:
+        return
+    
+    print(kwargs_streams)
     print(folder_name)
     
-    open_ephyviewer_mainwindow(folder_name)
+    
+    open_ephyviewer_mainwindow(folder_name, **kwargs_streams)
 
 
 if __name__ == '__main__':

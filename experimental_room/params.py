@@ -1,4 +1,4 @@
-job_kwargs = dict(n_jobs=20 ,
+job_kwargs = dict(n_jobs=4 ,
                   chunk_duration='1s',
                   progress_bar=False,
                   verbose=True

@@ -11,6 +11,7 @@ def plot_drift(peaks, rec_preprocess, peak_locations, name, time_range=None):
     
     x = peaks['sample_ind'] / fs
     y = peak_locations['y']
+    
     if time_range is not None:
         mask = (x > time_range[0]) & (x < time_range[1])
         x = x[mask]
@@ -79,15 +80,20 @@ def plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, time_range=
         ax.set_aspect(0.5)
     plt.show()
     
-def plot_noise(rec_preprocess, with_contact_color=False, with_interpolated_map=True, time_range=None):
+def plot_noise(rec_preprocess, noise_levels_scaled, with_contact_color=False, with_interpolated_map=True, time_range=None, clim=(0,20)):
     # visualize noise clouds on the probe
     probe = rec_preprocess.get_probe()
     fs = rec_preprocess.get_sampling_frequency()
+ 
+    if time_range == (0,rec_preprocess.get_total_duration()):
+        time_range = None
     
     if time_range is not None:
-        rec_preprocess = rec_preprocess.frame_slice(start_frame=time_range[0]*fs, end_frame=time_range[1]*fs)
+        print('Recomputing noise in time range... might take a few minutes')
         
-    noise_levels_scaled = si.get_noise_levels(rec_preprocess, return_scaled=True)
+        rec_preprocess = rec_preprocess.frame_slice(start_frame=time_range[0]*fs, end_frame=time_range[1]*fs)
+        noise_levels_scaled = si.get_noise_levels(rec_preprocess, return_scaled=True)
+        
     channel_locs = rec_preprocess.get_channel_locations()
     y_max = np.max(channel_locs[:, 1])/2
     y_min = np.min(channel_locs[:, 1])-100
@@ -109,7 +115,7 @@ def plot_noise(rec_preprocess, with_contact_color=False, with_interpolated_map=T
             num_pixel=None, method='linear',
             xlims=None, ylims=None)
             im = ax.imshow(image, extent=xlims + ylims, origin='lower', alpha=0.5)
-            im.set_clim(0, 20)
+            im.set_clim(clim)
             artists = artists + (im,)
         
         ax.set_ylim(y_min, y_max)

@@ -15,10 +15,6 @@ def open_ephyviewer_mainwindow(spikeglx_folder,
     mic = True,
     filtered_lfp = False,):
 
-    # Choose sources:
-
-    print(spikeglx_folder)
-
     # App and viewer objects
     app = ephyviewer.mkQApp()
     win = ephyviewer.MainViewer(debug=True, show_auto_scale=True)
@@ -51,6 +47,15 @@ def open_ephyviewer_mainwindow(spikeglx_folder,
         # time-freq
         view1_tf = ephyviewer.TimeFreqViewer(source=sig_source1, name='timefreq') # Timefreq view of LFP
         win.add_view(view1_tf)
+        
+        
+        view1.params['scale_mode'] = 'same_for_all'
+        for c in range(recording_lf.get_num_channels()):
+            if c % 50 == 0:
+                visible = True
+            else:
+                visible = False
+            view1.by_channel_params[f'ch{c}', 'visible'] = visible
 
     if mic:
         recording_nidq = si.SpikeGLXRecordingExtractor(spikeglx_folder, stream_id='nidq') # microphone
@@ -78,20 +83,9 @@ def open_ephyviewer_mainwindow(spikeglx_folder,
         view3 = ephyviewer.TraceViewer(source=sig_source3, name='signals flfp') # Trace of LFP filtered
         win.add_view(view3)
        
-    #~ win.auto_scale()
-
     # Display
     win.show()
     app.exec_()
-
-def select_streams():
-    # Want to add a little GUI that I can indicate which streams you want to initialize. That would change 
-    # Choose sources:
-    ap = False
-    raw_lfp = False
-    mic = True
-    filtered_lfp = False
-
 
 def select_folder_and_open():
     app = ephyviewer.mkQApp()
@@ -127,8 +121,6 @@ def select_folder_and_open():
 
 
 if __name__ == '__main__':
-    #spikeglx_folder = 'D:/Neuropixel_Recordings/Rec_18_08_2022_g0'
-    #open_ephyviewer_mainwindow(spikeglx_folder)
     select_folder_and_open()
     
     

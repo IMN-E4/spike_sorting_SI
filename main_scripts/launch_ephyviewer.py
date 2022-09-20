@@ -1,11 +1,36 @@
-import ephyviewer
-import matplotlib.pyplot as plt
-from pathlib import Path
-import spikeinterface.full as si
-from probeinterface import read_spikeglx
-from probeinterface.plotting import plot_probe
-import numpy as np
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
+"""
+This is the script to launch ephyviewer.
+
+"""
+
+__author__ = "Eduarda Centeno & Samuel Garcia"
+__contact__ = "teame4.leblois@gmail.com"
+__date__ = "2021/10/1"  ### Date it was created
+__status__ = (
+    "Production"  ### Production = still being developed. Else: Concluded/Finished.
+)
+
+
+####################
+# Review History   #
+####################
+
+
+####################
+# Libraries        #
+####################
+
+# Standard imports  ### (Put here built-in libraries - https://docs.python.org/3/library/)
+from pathlib import Path
+
+# Third party imports ### (Put here third-party libraries e.g. pandas, numpy)
+import spikeinterface.full as si
+import ephyviewer
+
+# Internal imports ### (Put here imports that are related to internal codes from the lab)
 
 
 # Choose sources:
@@ -16,8 +41,8 @@ filtered_lfp = False
 sorting = False
 
 # Paths
-base_folder = Path('/home/analysis_user/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/Imp_10_11_2021/Recordings/')
-data_folder = base_folder / 'Rec_2_19_11_2021_g0'
+base_folder = Path('/home/analysis_user/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/Impl_07_03_2022/Recordings/')
+data_folder = base_folder / 'Rec_7_13_03_2022_g0'
 
 print(data_folder)
 

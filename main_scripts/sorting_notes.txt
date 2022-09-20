@@ -1,0 +1,4 @@
+
+
+Sam notes on 20/06/2022:
+ * preprocess time nas to local HD : 4min for 1000s

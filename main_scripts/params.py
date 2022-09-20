@@ -4,11 +4,15 @@ from pathlib import Path
 base_input_folder = Path('/home/analysis_user/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/')
 
 
+# base_input_folder = Path('/media/analysis_user/LaCie/Data/Neuropixels')
+
 
 base_sorting_cache_folder = Path('/data1/Neuropixel_recordings/')
 
+# base_sorting_cache_folder = Path('/data1_test')
 
-job_kwargs = dict(n_jobs=20,
+
+job_kwargs = dict(n_jobs=20 ,
                   chunk_duration='1s',
                   progress_bar=True,
                   )
@@ -46,7 +50,7 @@ peak_location_params = dict(
 
 cleaning_params = dict(
     snr_threshold=5.,
-    firing_rate=0.01,
+    firing_rate=1,
 )
 
 
@@ -83,8 +87,8 @@ spykingcircus2_params = {
 
 sorters = {
         'tridesclous': tridesclous_params,
-        #'kilosort2_5' : kilosort2_5_params,
+        'kilosort2_5' : kilosort2_5_params,
         # 'kilosort2' : kilosort2_params,
         # 'experimental_sorter1': dict(delete_existing=True),
-        'spykingcircus2' : spykingcircus2_params,
+        # 'spykingcircus2' : spykingcircus2_params,
 }

@@ -87,7 +87,6 @@ def get_workdir_folder(spikeglx_folder, time_range):
     """
     Common function to get workdir
     """
-
     name = spikeglx_folder.stem
     implant_name = spikeglx_folder.parents[1].stem
     time_stamp = datetime.now().strftime("%Y-%m")
@@ -259,13 +258,6 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
             we, load_if_exists=True, **amplitude_params, **job_kwargs
         )
 
-        metrics_list = [
-            "snr",
-            "isi_violation",
-            "num_spikes",
-            "firing_rate",
-            "presence_ratio",
-        ]
         si.compute_quality_metrics(we, load_if_exists=False, metric_names=metrics_list)
 
     # report : this is super slow!!!

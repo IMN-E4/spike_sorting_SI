@@ -66,7 +66,7 @@ def apply_preprocess(rec):
 
 def fix_time_range(spikeglx_folder, time_range):
     rec = si.read_spikeglx(spikeglx_folder, stream_id="imec0.ap")
-    print(rec)
+    # print(rec)
 
     fs = rec.get_sampling_frequency()
 
@@ -145,10 +145,12 @@ def run_pre_sorting_checks(spikeglx_folder, time_range=None):
     This function will result in plots from plot_drift,  plot_peaks_axis, plot_peaks_activity, and plot_noise.
     """
 
+    print('################ Starting presorting checks! ################')
+
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder, time_range=time_range
     )
-    print(rec_preprocess)
+    # print(rec_preprocess)
 
     noise_file = working_folder / "noise_levels.npy"
     if noise_file.exists():
@@ -168,7 +170,7 @@ def run_pre_sorting_checks(spikeglx_folder, time_range=None):
             **job_kwargs,
         )
         np.save(peaks_file, peaks)
-    print(peaks.shape)
+    # print(peaks.shape)
 
     location_file = working_folder / "peak_locations.npy"
     if location_file.exists():
@@ -178,7 +180,7 @@ def run_pre_sorting_checks(spikeglx_folder, time_range=None):
             rec_preprocess, peaks, **peak_location_params, **job_kwargs
         )
         np.save(location_file, peak_locations)
-    print(peak_locations.shape)
+    # print(peak_locations.shape)
 
     name = Path(spikeglx_folder).stem
 
@@ -204,6 +206,7 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
     This function will result in sorting, waveform, report, and phy output folders.
     """
 
+    print('################ Runninng sorters! ################')
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder, time_range=time_range
     )
@@ -233,7 +236,7 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
                     job_kwargs=job_kwargs,
                     **params,
                 )
-            print(sorting)
+            # print(sorting)
             sorting = sorting.save(
                 format="npz", folder=working_folder / f"sorting_{sorter_name}"
             )
@@ -252,7 +255,7 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
             **waveform_params,
             **job_kwargs,
         )
-        print(we)
+        # print(we)
 
         si.compute_spike_amplitudes(
             we, load_if_exists=True, **amplitude_params, **job_kwargs
@@ -260,21 +263,21 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
 
         si.compute_quality_metrics(we, load_if_exists=False, metric_names=metrics_list)
 
-    # report : this is super slow!!!
-    for sorter_name, params in sorters.items():
-        report_folder = working_folder / f"report_{sorter_name}"
-        if not report_folder.exists():
-            wf_folder = working_folder / f"waveforms_{sorter_name}"
-            we = si.WaveformExtractor.load_from_folder(wf_folder)
-            si.export_report(we, report_folder, remove_if_exists=False, **job_kwargs)
+    # # report : this is super slow!!!
+    # for sorter_name, params in sorters.items():
+    #     report_folder = working_folder / f"report_{sorter_name}"
+    #     if not report_folder.exists():
+    #         wf_folder = working_folder / f"waveforms_{sorter_name}"
+    #         we = si.WaveformExtractor.load_from_folder(wf_folder)
+    #         si.export_report(we, report_folder, remove_if_exists=False, **job_kwargs)
 
-    # export to phy
-    for sorter_name, params in sorters.items():
-        phy_folder = working_folder / f"phy_{sorter_name}"
-        if not phy_folder.exists():
-            wf_folder = working_folder / f"waveforms_{sorter_name}"
-            we = si.WaveformExtractor.load_from_folder(wf_folder)
-            si.export_to_phy(we, phy_folder, remove_if_exists=False, **job_kwargs)
+    # # export to phy
+    # for sorter_name, params in sorters.items():
+    #     phy_folder = working_folder / f"phy_{sorter_name}"
+    #     if not phy_folder.exists():
+    #         wf_folder = working_folder / f"waveforms_{sorter_name}"
+    #         we = si.WaveformExtractor.load_from_folder(wf_folder)
+    #         si.export_to_phy(we, phy_folder, remove_if_exists=False, **job_kwargs)
 
 
 ########### Post-processing
@@ -286,6 +289,8 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
 
     This function will result in clean sorting, waveform, report, and phy output folders.
     """
+    
+    print('################ Starting postprocessing! ################')
 
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder, time_range=time_range
@@ -333,13 +338,6 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
             we_clean, load_if_exists=True, **amplitude_params, **job_kwargs
         )
 
-        metrics_list = [
-            "snr",
-            "isi_violation",
-            "num_spikes",
-            "firing_rate",
-            "presence_ratio",
-        ]
         si.compute_quality_metrics(
             we_clean, load_if_exists=True, metric_names=metrics_list
         )
@@ -349,11 +347,11 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
             we_clean, report_clean_folder, remove_if_exists=False, **job_kwargs
         )
 
-        # export to phy
-        phy_folder = working_folder / f"phy_clean_{sorter_name}"
-        wf_folder = working_folder / f"waveforms_{sorter_name}"
-        we = si.WaveformExtractor.load_from_folder(wf_folder)
-        si.export_to_phy(we, phy_folder, remove_if_exists=False, **job_kwargs)
+        # # export to phy
+        # phy_folder = working_folder / f"phy_clean_{sorter_name}"
+        # wf_folder = working_folder / f"waveforms_{sorter_name}"
+        # we = si.WaveformExtractor.load_from_folder(wf_folder)
+        # si.export_to_phy(we, phy_folder, remove_if_exists=False, **job_kwargs)
 
 
 ### re build the preprocess folder (not sure what this is for)

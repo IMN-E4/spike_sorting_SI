@@ -87,6 +87,9 @@ tridesclous_params = {
     },
 }
 
+tridesclous_params_docker = {
+    "docker_image" : "spikeinterface/tridesclous-base"
+}
 
 kilosort2_params = {
     "docker_image": "spikeinterface/kilosort2-compiled-base",
@@ -98,10 +101,15 @@ kilosort2_5_params = {
 
 spykingcircus2_params = {}
 
+yass_params = {
+    "docker_image": "spikeinterface/yass-base",
+}
+
 sorters = {
-    "tridesclous": tridesclous_params,
-    "kilosort2_5": kilosort2_5_params,
+    "tridesclous": tridesclous_params_docker,
+    # "kilosort2_5": kilosort2_5_params,
     # 'kilosort2' : kilosort2_params,
     # 'experimental_sorter1': dict(delete_existing=True),
     # 'spykingcircus2' : spykingcircus2_params,
+    # "yass" : yass_params
 }

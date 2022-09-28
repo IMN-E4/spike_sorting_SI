@@ -5,11 +5,10 @@
 This is the 'new' pipeline for neuropixel data.
 June 2022
 
-This run several sorter on NP data.
+This run several sorters on NP data.
 
-preprocess recording are computed on local cache and then deleted
-sorting folder are also deleted.
-
+preprocessed recording and waveforms are saved in local cache, final clean sorting
+is saved in NAS.
 """
 
 __author__ = "Eduarda Centeno & Samuel Garcia"
@@ -49,10 +48,6 @@ from experimental_sorting import run_experimental_sorting
 from recording_list import recording_list
 from myfigures import *
 
-
-# FOR NWB TEST: but dependencies not matching!
-# from nwb_conversion_tools import SpikeGLXRecordingInterface
-# from pynwb import NWBHDF5IO
 
 ########### Preparatory Functions
 def apply_preprocess(rec):
@@ -263,22 +258,6 @@ def run_sorting_pipeline(spikeglx_folder, time_range=None):
 
         si.compute_quality_metrics(we, load_if_exists=False, metric_names=metrics_list)
 
-    # # report : this is super slow!!!
-    # for sorter_name, params in sorters.items():
-    #     report_folder = working_folder / f"report_{sorter_name}"
-    #     if not report_folder.exists():
-    #         wf_folder = working_folder / f"waveforms_{sorter_name}"
-    #         we = si.WaveformExtractor.load_from_folder(wf_folder)
-    #         si.export_report(we, report_folder, remove_if_exists=False, **job_kwargs)
-
-    # # export to phy
-    # for sorter_name, params in sorters.items():
-    #     phy_folder = working_folder / f"phy_{sorter_name}"
-    #     if not phy_folder.exists():
-    #         wf_folder = working_folder / f"waveforms_{sorter_name}"
-    #         we = si.WaveformExtractor.load_from_folder(wf_folder)
-    #         si.export_to_phy(we, phy_folder, remove_if_exists=False, **job_kwargs)
-
 
 ########### Post-processing
 def run_postprocessing_sorting(spikeglx_folder, time_range=None):
@@ -295,7 +274,7 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder, time_range=time_range
     )
-    name = spikeglx_folder.stem
+    name = working_folder.stem
     implant_name = spikeglx_folder.parents[1].stem
 
     for sorter_name, params in sorters.items():
@@ -343,9 +322,13 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
         )
 
         report_clean_folder = working_folder / f"report_clean_{sorter_name}"
-        si.export_report(
+        if report_clean_folder.exists():
+            print("report already there for ", report_clean_folder)
+            continue
+        else:
+            si.export_report(
             we_clean, report_clean_folder, remove_if_exists=False, **job_kwargs
-        )
+            )
 
         # # export to phy
         # phy_folder = working_folder / f"phy_clean_{sorter_name}"
@@ -362,57 +345,6 @@ def rebuild_preprocess():
     time_range = None
     get_preprocess_recording(spikeglx_folder, time_range=time_range)
 
-
-########### Tests
-def test_run_sorting_pipeline():
-    # need for docker debugtest_run_postprocessing_sorting
-    os.environ[
-        "SPIKEINTERFACE_DEV_PATH"
-    ] = "/home/analysis_user/Python-related/GitHub/spikeinterface"
-    # print(os.getenv('SPIKEINTERFACE_DEV_PATH'))
-    # cd sorted
-    spikeglx_folder = base_input_folder / "Imp_10_11_2021"
-    print(spikeglx_folder)
-    time_range = None
-    run_sorting_pipeline(spikeglx_folder, time_range=time_range)
-
-
-def test_run_pre_sorting_checks():
-    # spikeglx_folder = base_input_folder / 'Imp_10_11_2021/Recordings/Rec_2_19_11_2021_g0'
-    spikeglx_folder = (
-        base_input_folder / "Imp_10_11_2021/Recordings/Rec_1_18_11_2021_g0"
-    )
-    print(spikeglx_folder)
-    run_pre_sorting_checks(spikeglx_folder, time_range=None)
-
-
-def test_run_postprocessing_sorting():
-    spikeglx_folder = (
-        base_input_folder / "Imp_10_11_2021/Recordings/Rec_1_18_11_2021_g0"
-    )
-    run_postprocessing_sorting(spikeglx_folder, time_range=None)
-
-
-def test_nwb_conversion():
-    spikeglx_folder = base_input_folder / "Imp_16_08_2022/Recordings/Rec_19_08_2022_g0"
-    file = spikeglx_folder / "Rec_19_08_2022_g0_t0.imec0.ap.bin"
-    # source_data = file_path=file.as_posix()
-    spike_glx_RI = SpikeGLXRecordingInterface(file)
-    metadata = spike_glx_RI.get_metadata()
-    print(spike_glx_RI)
-    print(metadata)
-
-    output = save_path = spikeglx_folder / "test.nwb"
-    # spike_glx_RI.run_conversion(output, metadata=metadata)
-
-    # with NWBHDF5IO(output, 'r', load_namespaces=True) as io:
-    #     nwbfile = io.read()
-    #     return nwbfile
-    #     from nwbwidgets import nwb2widget
-
-    #     # nwb2widget(nwbfile)
-
-
 ########### Run Batch
 def run_all():
     for implant_name, name, time_range in recording_list:
@@ -420,7 +352,7 @@ def run_all():
 
         print(spikeglx_folder)
 
-        run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
+        # run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
 
         run_sorting_pipeline(spikeglx_folder, time_range=time_range)
 
@@ -428,13 +360,4 @@ def run_all():
 
 
 if __name__ == "__main__":
-
-    ## TESTS
-    # test_run_sorting_pipeline()
-    # test_run_pre_sorting_checks()
-    # test_run_postprocessing_sorting()
-    # test_nwb_conversion()
-    # rebuild_preprocess()
-
-    ## Main
     run_all()

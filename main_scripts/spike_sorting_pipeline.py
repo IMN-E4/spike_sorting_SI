@@ -58,43 +58,44 @@ def apply_preprocess(rec):
     rec = si.common_reference(rec, reference="local", local_radius=(50, 100))
     return rec
 
-
-def fix_time_range(spikeglx_folder, time_range):
+def get_workdir_folder(spikeglx_folder, time_range):
+    """
+    Common function to get workdir
+    """
     rec = si.read_spikeglx(spikeglx_folder, stream_id="imec0.ap")
     # print(rec)
 
     fs = rec.get_sampling_frequency()
 
-    if time_range is None:
-        duration = rec.get_num_frames() / rec.get_sampling_frequency()
-        time_range = (0.0, duration)
+    name = spikeglx_folder.stem
+    implant_name = spikeglx_folder.parents[1].stem
+    time_stamp = datetime.now().strftime("%Y-%m")
 
+    if time_range is None:    
+        working_folder = (
+            base_sorting_cache_folder
+            / implant_name
+            / "sorting_cache"
+            / f"{time_stamp}-{name}-full"
+        )
+    
     else:
         time_range = tuple(float(e) for e in time_range)
 
         frame_range = (int(t * fs) for t in time_range)
         rec = rec.frame_slice(*frame_range)
 
-    return rec, time_range
-
-
-def get_workdir_folder(spikeglx_folder, time_range):
-    """
-    Common function to get workdir
-    """
-    name = spikeglx_folder.stem
-    implant_name = spikeglx_folder.parents[1].stem
-    time_stamp = datetime.now().strftime("%Y-%m")
-    working_folder = (
-        base_sorting_cache_folder
-        / implant_name
-        / "sorting_cache"
-        / f"{time_stamp}-{name}-{time_range[0]}to{time_range[1]}"
-    )
+        working_folder = (
+            base_sorting_cache_folder
+            / implant_name
+            / "sorting_cache"
+            / f"{time_stamp}-{name}-{int(time_range[0])}to{int(time_range[1])}"
+        )
+    
     working_folder.mkdir(exist_ok=True, parents=True)
     print(working_folder)
 
-    return working_folder
+    return rec, working_folder
 
 
 ########### Preprocess & Checks
@@ -102,11 +103,9 @@ def get_preprocess_recording(spikeglx_folder, time_range=None):
     """
     Function to get preprocessed recording.
     """
-    print(f"first time range is {time_range}")
-    rec, time_range = fix_time_range(spikeglx_folder, time_range=time_range)
-
-    print(f"second time range is {time_range}")
-    working_folder = get_workdir_folder(spikeglx_folder, time_range=time_range)
+    # print(f"first time range is {time_range}")
+    # rec, time_range = fix_time_range(spikeglx_folder, time_range=time_range)
+    rec, working_folder = get_workdir_folder(spikeglx_folder, time_range=time_range)
 
     # preprocessing
     preprocess_folder = working_folder / "preprocess_recording"
@@ -338,8 +337,6 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
 
 
 ### re build the preprocess folder (not sure what this is for)
-
-
 def rebuild_preprocess():
     spikeglx_folder = base_input_folder / "Imp_16_08_2022/Recordings/Rec_18_08_2022_g0"
     time_range = None
@@ -352,7 +349,7 @@ def run_all():
 
         print(spikeglx_folder)
 
-        # run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
+        run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
 
         run_sorting_pipeline(spikeglx_folder, time_range=time_range)
 

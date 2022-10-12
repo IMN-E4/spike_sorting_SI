@@ -35,22 +35,22 @@ import ephyviewer
 
 # Choose sources:
 ap = False
-raw_lfp = False
+raw_lfp = True
 mic = True
 filtered_lfp = False
 sorting = False
 
 # Paths
-base_folder = Path('/home/analysis_user/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/Impl_07_03_2022/Recordings/')
-data_folder = base_folder / 'Rec_7_13_03_2022_g0'
+base_folder = Path('/home/user_duda/smb4k/N-E4-BIGNAS.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/Imp_10_11_2021/Recordings/')
+data_folder = base_folder / 'Rec_2_19_11_2021_g0'
 
 print(data_folder)
 
-sorting_sub_path = 'sorting_20220420/full/filter+cmr_radius/tridesclous/custom_tdc_1/'
-
-## Folders
-sorting_folder = data_folder / sorting_sub_path
-print(sorting_folder)
+# sorting_sub_path = 'sorting_20220420/full/filter+cmr_radius/tridesclous/custom_tdc_1/'
+#
+# ## Folders
+# sorting_folder = data_folder / sorting_sub_path
+# print(sorting_folder)
 
 
 # App and viewer objects

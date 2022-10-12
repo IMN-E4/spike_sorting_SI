@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 base_input_folder = Path(
-    "/home/analysis_user/smb4k/NAS5802A5.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/"
+    "/home/user_duda/smb4k/N-E4-BIGNAS.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/"
 )
 
 
@@ -107,7 +107,7 @@ yass_params = {
 
 sorters = {
     "tridesclous": tridesclous_params_docker,
-    # "kilosort2_5": kilosort2_5_params,
+    "kilosort2_5": kilosort2_5_params,
     # 'kilosort2' : kilosort2_params,
     # 'experimental_sorter1': dict(delete_existing=True),
     # 'spykingcircus2' : spykingcircus2_params,

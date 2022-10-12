@@ -30,6 +30,7 @@ __status__ = (
 
 # Standard imports  ### (Put here built-in libraries - https://docs.python.org/3/library/)
 from datetime import datetime
+from distutils.command.clean import clean
 import shutil
 import os
 from pathlib import Path
@@ -279,6 +280,7 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
     for sorter_name, params in sorters.items():
         wf_folder = working_folder / f"waveforms_{sorter_name}"
         we = si.WaveformExtractor.load_from_folder(wf_folder)
+        
         sorting_no_dup = si.remove_redundant_units(we, remove_strategy="minimum_shift")
         # print(sorting_no_dup.unit_ids)
 
@@ -290,41 +292,57 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
         clean_sorting = sorting_no_dup.remove_units(remove_unit_ids)
         # print(clean_sorting.unit_ids)
 
+        if clean_sorting.unit_ids.size == 0:
+            print('no units to work on')
+            continue
+
         sorting_clean_folder = (
             base_input_folder / implant_name / "Sortings_clean" / name / sorter_name
         )
-        if sorting_clean_folder.exists():
-            print("remove exists clean", sorting_clean_folder)
-            shutil.rmtree(sorting_clean_folder)
+        # if sorting_clean_folder.exists():
+        #     print("remove exists clean", sorting_clean_folder)
+        #     shutil.rmtree(sorting_clean_folder)
         wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
-        if wf_clean_folder.exists():
-            shutil.rmtree(wf_clean_folder)
+        # if wf_clean_folder.exists():
+        #     shutil.rmtree(wf_clean_folder)
 
-        clean_sorting = clean_sorting.save(folder=sorting_clean_folder)
+        # clean_sorting = clean_sorting.save(folder=sorting_clean_folder)
 
+        # print('loading WE CLEAN')
         we_clean = si.extract_waveforms(
             rec_preprocess,
             clean_sorting,
             folder=wf_clean_folder,
-            load_if_exists=False,
+            load_if_exists=True,
             **waveform_params,
             **job_kwargs,
         )
         print(we_clean)
 
+        print('computing spike amplitudes')
         si.compute_spike_amplitudes(
             we_clean, load_if_exists=True, **amplitude_params, **job_kwargs
         )
 
+        print('computing quality metrics')
         si.compute_quality_metrics(
             we_clean, load_if_exists=True, metric_names=metrics_list
         )
+
+        print('computing locations')
+        si.compute_unit_locations(we_clean, method='monopolar_triangulation', 
+                radius_um=150,
+                max_distance_um=1000,
+                optimizer="minimize_with_log_penality",
+                load_if_exists=True
+                )
 
         report_clean_folder = working_folder / f"report_clean_{sorter_name}"
         if report_clean_folder.exists():
             print("report already there for ", report_clean_folder)
             continue
         else:
+            print('exporting report')
             si.export_report(
             we_clean, report_clean_folder, remove_if_exists=False, **job_kwargs
             )
@@ -336,11 +354,50 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
         # si.export_to_phy(we, phy_folder, remove_if_exists=False, **job_kwargs)
 
 
-### re build the preprocess folder (not sure what this is for)
-def rebuild_preprocess():
-    spikeglx_folder = base_input_folder / "Imp_16_08_2022/Recordings/Rec_18_08_2022_g0"
-    time_range = None
-    get_preprocess_recording(spikeglx_folder, time_range=time_range)
+
+def compare_sorter_cleaned(spikeglx_folder,time_range=None):
+
+    rec_preprocess, working_folder = get_preprocess_recording(
+        spikeglx_folder, time_range=time_range
+    )
+    name = working_folder.stem
+    implant_name = spikeglx_folder.parents[1].stem
+    
+    print('start first loop')
+    sortings = []
+    for sorter_name, params in sorters.items():
+        sorting_clean_folder = base_input_folder / implant_name / "Sortings_clean" / name / sorter_name
+        sorting = si.load_extractor(sorting_clean_folder)
+        sortings.append(sorting)
+
+    print('starting second loop')
+    sorter_names = list(sorters.keys())
+    n = len(sorters)
+    for i in range(n-1):
+        for j in range(i+1, n):
+            
+            comp = si.compare_two_sorters(sortings[i], sortings[j],
+                                  sorting1_name=sorter_names[i], sorting2_name=sorter_names[j],
+                                  delta_time=0.4, match_score=0.5, chance_score=0.1, n_jobs=1)
+
+            fig, ax = plt.subplots()
+            si.plot_agreement_matrix(comp, ax=ax)
+            comparison_figure_file = working_folder / f"comparison_clean_{sorter_names[i]}_{sorter_names[j]}.pdf"
+            print(comparison_figure_file)
+            plt.show()
+            # fig.savefig(comparison_figure_file)
+            
+
+
+
+def test_compare_sorter_cleaned():
+
+    implant_name = 'Imp_27_09_2022'
+    name = 'Rec_27_09_2022_after_surgery_g0'
+    spikeglx_folder = base_input_folder / implant_name / "Recordings" / name
+
+    compare_sorter_cleaned(spikeglx_folder, time_range=None)
+
 
 ########### Run Batch
 def run_all():
@@ -349,12 +406,14 @@ def run_all():
 
         print(spikeglx_folder)
 
-        run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
+        # run_pre_sorting_checks(spikeglx_folder, time_range=time_range)
 
-        run_sorting_pipeline(spikeglx_folder, time_range=time_range)
+        # run_sorting_pipeline(spikeglx_folder, time_range=time_range)
 
         run_postprocessing_sorting(spikeglx_folder, time_range=time_range)
 
 
 if __name__ == "__main__":
     run_all()
+
+    # test_compare_sorter_cleaned()

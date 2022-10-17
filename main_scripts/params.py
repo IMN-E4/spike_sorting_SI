@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 base_input_folder = Path(
-    "/home/user_duda/smb4k/N-E4-BIGNAS.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/"
+    "/home/eduarda/smb4k/N-E4-BIGNAS.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/"
 )
 
 

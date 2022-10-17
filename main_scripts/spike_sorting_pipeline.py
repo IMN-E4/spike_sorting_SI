@@ -303,8 +303,14 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
         #     print("remove exists clean", sorting_clean_folder)
         #     shutil.rmtree(sorting_clean_folder)
         wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
+        report_clean_folder = working_folder / f"report_clean_{sorter_name}"
+
         # if wf_clean_folder.exists():
         #     shutil.rmtree(wf_clean_folder)
+        #     # when we delete the waveform folder, we need also to delete the report folder
+        #     if report_clean_folder.exist():
+        #         shutil.rmtree(report_clean_folder)
+
 
         # clean_sorting = clean_sorting.save(folder=sorting_clean_folder)
 
@@ -337,17 +343,18 @@ def run_postprocessing_sorting(spikeglx_folder, time_range=None):
                 load_if_exists=True
                 )
 
-        report_clean_folder = working_folder / f"report_clean_{sorter_name}"
+        print('compute correlograms')
+        si.compute_correlograms(we_clean, window_ms=50., bin_ms=1., load_if_exists=True)
+
+        
         if report_clean_folder.exists():
             print("report already there for ", report_clean_folder)
-            continue
         else:
             print('exporting report')
-            si.export_report(
-            we_clean, report_clean_folder, remove_if_exists=False, **job_kwargs
-            )
+            si.export_report(we_clean, report_clean_folder, remove_if_exists=False, **job_kwargs)
 
         # # export to phy
+
         # phy_folder = working_folder / f"phy_clean_{sorter_name}"
         # wf_folder = working_folder / f"waveforms_{sorter_name}"
         # we = si.WaveformExtractor.load_from_folder(wf_folder)

@@ -74,7 +74,7 @@ def apply_preprocess(rec):
     return rec_preproc
 
 
-def get_workdir_folder(spikeglx_folder, time_range, channel_range):
+def get_workdir_folder(spikeglx_folder, time_range, depth_range, stream_id="imec0.ap", load_sync_channel=False):
     """Create working directory
 
     Parameters
@@ -85,8 +85,8 @@ def get_workdir_folder(spikeglx_folder, time_range, channel_range):
     time_range: None or list
         time range to slice recording
 
-    channel_range: None or list
-        channel range to slice recording
+    depth_range: None or list
+        depth range to slice recording
 
     Returns
     -------
@@ -96,7 +96,7 @@ def get_workdir_folder(spikeglx_folder, time_range, channel_range):
     working_folder: Path
         working folder
     """
-    rec = si.read_spikeglx(spikeglx_folder, stream_id="imec0.ap")
+    rec = si.read_spikeglx(spikeglx_folder, stream_id=stream_id, load_sync_channel=load_sync_channel)
     # print(rec)
 
     fs = rec.get_sampling_frequency()
@@ -130,15 +130,14 @@ def get_workdir_folder(spikeglx_folder, time_range, channel_range):
     working_folder.mkdir(exist_ok=True, parents=True)
     print(working_folder)
 
-    # Channel slicing
-    if channel_range is not None:
+    if depth_range is not None and not load_sync_channel:
         print(
-            f"Channel slicing between {channel_range[0]} and {channel_range[1]}"
+            f"Depth slicing between {depth_range[0]} and {depth_range[1]}"
         )
-        channel_ids = rec.channel_ids[
-            channel_range[0] : channel_range[1]
-        ]
-        rec = rec.channel_slice(channel_ids=channel_ids)
+        yloc = rec.get_channel_locations()[:, 1]
+        keep = (yloc >= depth_range[0]) & (yloc <=depth_range[1])
+        keep_chan_ids = rec.channel_ids[keep]
+        rec = rec.channel_slice(channel_ids=keep_chan_ids)
     else:
         print(f"Using all channels")
 
@@ -147,7 +146,7 @@ def get_workdir_folder(spikeglx_folder, time_range, channel_range):
 
 ########### Preprocess & Checks ###########
 def get_preprocess_recording(
-    spikeglx_folder, time_range=None, channel_range=None
+    spikeglx_folder, time_range=None, depth_range=None
 ):
     """Get preprocessed recording
 
@@ -159,8 +158,8 @@ def get_preprocess_recording(
     time_range: None or list
         time range to slice recording
 
-    channel_range: None or list
-        channel range to slice recording
+    depth_range: None or list
+        depth range to slice recording
 
     Returns
     -------
@@ -173,7 +172,7 @@ def get_preprocess_recording(
     rec, working_folder = get_workdir_folder(
         spikeglx_folder,
         time_range=time_range,
-        channel_range=channel_range,
+        depth_range=depth_range,
     )
 
     # Preprocessing
@@ -205,7 +204,7 @@ def get_preprocess_recording(
 
 
 def run_pre_sorting_checks(
-    spikeglx_folder, time_range=None, channel_range=None
+    spikeglx_folder, time_range=None, depth_range=None
 ):
     """Apply pre-sorting checks
 
@@ -217,8 +216,8 @@ def run_pre_sorting_checks(
     time_range: None or list
         time range to slice recording
 
-    channel_range: None or list
-        channel range to slice recording
+    depth_range: None or list
+        depth range to slice recording
 
     Returns
     -------
@@ -235,7 +234,7 @@ def run_pre_sorting_checks(
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder,
         time_range=time_range,
-        channel_range=channel_range,
+        depth_range=depth_range,
     )
 
     # Load/compute noise levels
@@ -293,7 +292,7 @@ def run_pre_sorting_checks(
 
 ########### Run sorting ###########
 def run_sorting_pipeline(
-    spikeglx_folder, time_range=None, channel_range=None
+    spikeglx_folder, time_range=None, depth_range=None
 ):
     """Run sorting with different sorters and params
 
@@ -305,8 +304,8 @@ def run_sorting_pipeline(
     time_range: None or list
         time range to slice recording
 
-    channel_range: None or list
-        channel range to slice recording
+    depth_range: None or list
+        depth range to slice recording
 
     Returns
     -------
@@ -318,7 +317,7 @@ def run_sorting_pipeline(
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder,
         time_range=time_range,
-        channel_range=channel_range,
+        depth_range=depth_range,
     )
 
     # Run sorters and respective params
@@ -370,7 +369,7 @@ def run_sorting_pipeline(
 
 ########### Post-processing ###########
 def run_postprocessing_sorting(
-    spikeglx_folder, time_range=None, channel_range=None
+    spikeglx_folder, time_range=None, depth_range=None
 ):
     """Run post-processing on different sorters and params
     The idea is to have bad units removed according to metrics, and run auto-merging of units.
@@ -383,8 +382,8 @@ def run_postprocessing_sorting(
     time_range: None or list
         time range to slice recording
 
-    channel_range: None or list
-        channel range to slice recording
+    depth_range: None or list
+        depth range to slice recording
 
     Returns
     -------
@@ -397,7 +396,7 @@ def run_postprocessing_sorting(
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder,
         time_range=time_range,
-        channel_range=channel_range,
+        depth_range=depth_range,
     )
     name = working_folder.stem
     implant_name = spikeglx_folder.parents[1].stem
@@ -580,7 +579,7 @@ def compare_sorter_cleaned(spikeglx_folder, time_range=None):
 def run_all(
     pre_check=True, sorting=True, postproc=True, compare_sorters=True
 ):
-    for implant_name, name, time_range, channel_range in recording_list:
+    for implant_name, name, time_range, depth_range in recording_list:
         spikeglx_folder = (
             base_input_folder / implant_name / "Recordings" / name
         )
@@ -592,14 +591,15 @@ def run_all(
             run_pre_sorting_checks(
                 spikeglx_folder,
                 time_range=time_range,
-                channel_range=channel_range,
+                depth_range=depth_range,
             )
+
         if sorting:
             # Run sorting pipeline
             run_sorting_pipeline(
                 spikeglx_folder,
                 time_range=time_range,
-                channel_range=channel_range,
+                depth_range=depth_range,
             )
 
         if postproc:
@@ -607,7 +607,7 @@ def run_all(
             run_postprocessing_sorting(
                 spikeglx_folder,
                 time_range=time_range,
-                channel_range=channel_range,
+                depth_range=depth_range,
             )
 
         if compare_sorters:
@@ -618,10 +618,10 @@ def run_all(
 
 
 if __name__ == "__main__":
-    pre_check = True
+    pre_check = False
     sorting = True
-    postproc = True
-    compare_sorters = True
+    postproc = False
+    compare_sorters = False
 
     run_all(
         pre_check=pre_check,

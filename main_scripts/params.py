@@ -106,10 +106,10 @@ yass_params = {
 }
 
 sorters = {
-    "tridesclous": tridesclous_params_docker,
-    "kilosort2_5": kilosort2_5_params,
+    # "tridesclous": tridesclous_params_docker,
+    # "kilosort2_5": kilosort2_5_params,
     # 'kilosort2' : kilosort2_params,
     # 'experimental_sorter1': dict(delete_existing=True),
-    # 'spykingcircus2' : spykingcircus2_params,
+    'spykingcircus2' : spykingcircus2_params,
     # "yass" : yass_params
 }

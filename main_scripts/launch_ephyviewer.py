@@ -77,6 +77,7 @@ if raw_lfp:
 
 if mic:
     recording_nidq = si.SpikeGLXRecordingExtractor(data_folder, stream_id='nidq') # microphone
+    
     print(recording_nidq.get_sampling_frequency())
     print(recording_nidq)
     sig_source2 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_nidq) # microphone

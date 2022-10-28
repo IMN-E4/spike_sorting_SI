@@ -325,23 +325,17 @@ def run_sorting_pipeline(
         sorting_folder = working_folder / f"sorting_{sorter_name}"
 
         if sorting_folder.exists():
-            print(f"{sorter_name} already computed ")
+            print(f'{sorter_name} already computed ')
             sorting = si.load_extractor(sorting_folder)
-
         else:
-            print(f"Computing {sorter_name}")
-            sorting = run_experimental_sorting(
-                rec_preprocess,
-                output_folder=working_folder
-                / f"raw_sorting_{sorter_name}",
-                job_kwargs=job_kwargs,
-                **params,
-            )
-
-            sorting = sorting.save(
-                format="npz",
-                folder=working_folder / f"sorting_{sorter_name}",
-            )
+            sorting = si.run_sorter(sorter_name, rec_preprocess,
+                                output_folder=working_folder / f'raw_sorting_{sorter_name}',
+                                delete_output_folder=True,
+                                verbose=True,
+                                **params
+                                )
+            print(sorting)
+            sorting = sorting.save(format='npz', folder=working_folder / f'sorting_{sorter_name}')
 
     # Extract waveforms and compute some metrics
     for sorter_name, params in sorters.items():
@@ -618,9 +612,9 @@ def run_all(
 
 
 if __name__ == "__main__":
-    pre_check = False
+    pre_check = True
     sorting = True
-    postproc = False
+    postproc = True
     compare_sorters = False
 
     run_all(

@@ -64,8 +64,8 @@ def open_ephyviewer_mainwindow(spikeglx_folder,
         win.add_view(view2)
         
         view2.params['colormap'] = 'inferno'
-        view2.params.scalogram['overlapratio'] = 0.2
-        view2.params.scalogram['binsize'] = 0.02
+        view2.params.child('scalogram')['overlapratio'] = 0.2
+        view2.params.child('scalogram')['binsize'] = 0.02
         
         
         for c in range(recording_nidq.get_num_channels()):

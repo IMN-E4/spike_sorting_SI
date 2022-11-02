@@ -14,7 +14,9 @@ is saved in NAS.
 __author__ = "Eduarda Centeno & Samuel Garcia"
 __contact__ = "teame4.leblois@gmail.com"
 __date__ = "2022/06/1"  ### Date it was created
-__status__ = "Production"  ### Production = still being developed. Else: Concluded/Finished.
+__status__ = (
+    "Production"  ### Production = still being developed. Else: Concluded/Finished.
+)
 
 
 ####################
@@ -68,13 +70,18 @@ def apply_preprocess(rec):
     rec = si.bandpass_filter(rec, freq_min=300, freq_max=6000)
 
     # Common referencing
-    rec_preproc = si.common_reference(
-        rec, reference="local", local_radius=(50, 100)
-    )
+    rec_preproc = si.common_reference(rec, reference="local", local_radius=(50, 100))
     return rec_preproc
 
 
-def get_workdir_folder(spikeglx_folder, time_range, depth_range, stream_id="imec0.ap", load_sync_channel=False):
+def get_workdir_folder(
+    spikeglx_folder,
+    time_range,
+    depth_range,
+    stream_id="imec0.ap",
+    load_sync_channel=False,
+    time_stamp="default",
+):
     """Create working directory
 
     Parameters
@@ -88,6 +95,9 @@ def get_workdir_folder(spikeglx_folder, time_range, depth_range, stream_id="imec
     depth_range: None or list
         depth range to slice recording
 
+    time_stamp: str
+        time stamp on folder. default = current month
+
     Returns
     -------
     rec: spikeinterface object
@@ -96,14 +106,18 @@ def get_workdir_folder(spikeglx_folder, time_range, depth_range, stream_id="imec
     working_folder: Path
         working folder
     """
-    rec = si.read_spikeglx(spikeglx_folder, stream_id=stream_id, load_sync_channel=load_sync_channel)
+    rec = si.read_spikeglx(
+        spikeglx_folder, stream_id=stream_id, load_sync_channel=load_sync_channel
+    )
     # print(rec)
 
     fs = rec.get_sampling_frequency()
 
     name = spikeglx_folder.stem
     implant_name = spikeglx_folder.parents[1].stem
-    time_stamp = datetime.now().strftime("%Y-%m")
+
+    if time_stamp == "default":
+        time_stamp = datetime.now().strftime("%Y-%m")
 
     # Time slicing
     if time_range is None:
@@ -131,11 +145,9 @@ def get_workdir_folder(spikeglx_folder, time_range, depth_range, stream_id="imec
     print(working_folder)
 
     if depth_range is not None and not load_sync_channel:
-        print(
-            f"Depth slicing between {depth_range[0]} and {depth_range[1]}"
-        )
+        print(f"Depth slicing between {depth_range[0]} and {depth_range[1]}")
         yloc = rec.get_channel_locations()[:, 1]
-        keep = (yloc >= depth_range[0]) & (yloc <=depth_range[1])
+        keep = (yloc >= depth_range[0]) & (yloc <= depth_range[1])
         keep_chan_ids = rec.channel_ids[keep]
         rec = rec.channel_slice(channel_ids=keep_chan_ids)
     else:
@@ -146,7 +158,7 @@ def get_workdir_folder(spikeglx_folder, time_range, depth_range, stream_id="imec
 
 ########### Preprocess & Checks ###########
 def get_preprocess_recording(
-    spikeglx_folder, time_range=None, depth_range=None
+    spikeglx_folder, time_range=None, depth_range=None, time_stamp="default"
 ):
     """Get preprocessed recording
 
@@ -161,6 +173,9 @@ def get_preprocess_recording(
     depth_range: None or list
         depth range to slice recording
 
+    time_stamp: str
+        time stamp on folder. default = current month
+
     Returns
     -------
     rec_preprocess: spikeinterface object
@@ -173,6 +188,7 @@ def get_preprocess_recording(
         spikeglx_folder,
         time_range=time_range,
         depth_range=depth_range,
+        time_stamp=time_stamp,
     )
 
     # Preprocessing
@@ -182,9 +198,7 @@ def get_preprocess_recording(
         rec_preprocess = si.load_extractor(preprocess_folder)
 
     elif (working_folder / "preprocess.json").exists():
-        rec_preprocess = si.load_extractor(
-            working_folder / "preprocess.json"
-        )
+        rec_preprocess = si.load_extractor(working_folder / "preprocess.json")
         rec_preprocess = rec_preprocess.save(
             format="binary", folder=preprocess_folder, **job_kwargs
         )
@@ -204,7 +218,7 @@ def get_preprocess_recording(
 
 
 def run_pre_sorting_checks(
-    spikeglx_folder, time_range=None, depth_range=None
+    spikeglx_folder, time_range=None, depth_range=None, time_stamp="default"
 ):
     """Apply pre-sorting checks
 
@@ -226,15 +240,14 @@ def run_pre_sorting_checks(
 
     """
 
-    print(
-        "################ Starting presorting checks! ################"
-    )
+    print("################ Starting presorting checks! ################")
 
     # Get recording and working dir
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder,
         time_range=time_range,
         depth_range=depth_range,
+        time_stamp=time_stamp,
     )
 
     # Load/compute noise levels
@@ -242,9 +255,7 @@ def run_pre_sorting_checks(
     if noise_file.exists():
         noise_levels = np.load(noise_file)
     else:
-        noise_levels = si.get_noise_levels(
-            rec_preprocess, return_scaled=False
-        )
+        noise_levels = si.get_noise_levels(rec_preprocess, return_scaled=False)
         np.save(noise_file, noise_levels)
 
     # Load/compute peaks
@@ -275,13 +286,9 @@ def run_pre_sorting_checks(
     figure_folder = working_folder / "figures"
     figure_folder.mkdir(exist_ok=True, parents=True)
 
-    plot_drift(
-        peaks, rec_preprocess, peak_locations, name, figure_folder
-    )
+    plot_drift(peaks, rec_preprocess, peak_locations, name, figure_folder)
     plot_peaks_axis(rec_preprocess, peak_locations, name, figure_folder)
-    plot_peaks_activity(
-        peaks, rec_preprocess, peak_locations, name, figure_folder
-    )
+    plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, figure_folder)
     plot_noise(
         rec_preprocess,
         figure_folder,
@@ -292,7 +299,7 @@ def run_pre_sorting_checks(
 
 ########### Run sorting ###########
 def run_sorting_pipeline(
-    spikeglx_folder, time_range=None, depth_range=None
+    spikeglx_folder, time_range=None, depth_range=None, time_stamp="default"
 ):
     """Run sorting with different sorters and params
 
@@ -318,6 +325,7 @@ def run_sorting_pipeline(
         spikeglx_folder,
         time_range=time_range,
         depth_range=depth_range,
+        time_stamp=time_stamp,
     )
 
     # Run sorters and respective params
@@ -325,17 +333,21 @@ def run_sorting_pipeline(
         sorting_folder = working_folder / f"sorting_{sorter_name}"
 
         if sorting_folder.exists():
-            print(f'{sorter_name} already computed ')
+            print(f"{sorter_name} already computed ")
             sorting = si.load_extractor(sorting_folder)
         else:
-            sorting = si.run_sorter(sorter_name, rec_preprocess,
-                                output_folder=working_folder / f'raw_sorting_{sorter_name}',
-                                delete_output_folder=True,
-                                verbose=True,
-                                **params
-                                )
+            sorting = si.run_sorter(
+                sorter_name,
+                rec_preprocess,
+                output_folder=working_folder / f"raw_sorting_{sorter_name}",
+                delete_output_folder=True,
+                verbose=True,
+                **params,
+            )
             print(sorting)
-            sorting = sorting.save(format='npz', folder=working_folder / f'sorting_{sorter_name}')
+            sorting = sorting.save(
+                format="npz", folder=working_folder / f"sorting_{sorter_name}"
+            )
 
     # Extract waveforms and compute some metrics
     for sorter_name, params in sorters.items():
@@ -356,14 +368,12 @@ def run_sorting_pipeline(
             we, load_if_exists=True, **amplitude_params, **job_kwargs
         )
 
-        si.compute_quality_metrics(
-            we, load_if_exists=False, metric_names=metrics_list
-        )
+        si.compute_quality_metrics(we, load_if_exists=False, metric_names=metrics_list)
 
 
 ########### Post-processing ###########
 def run_postprocessing_sorting(
-    spikeglx_folder, time_range=None, depth_range=None
+    spikeglx_folder, time_range=None, depth_range=None, time_stamp="default"
 ):
     """Run post-processing on different sorters and params
     The idea is to have bad units removed according to metrics, and run auto-merging of units.
@@ -391,6 +401,7 @@ def run_postprocessing_sorting(
         spikeglx_folder,
         time_range=time_range,
         depth_range=depth_range,
+        time_stamp=time_stamp,
     )
     name = working_folder.stem
     implant_name = spikeglx_folder.parents[1].stem
@@ -400,9 +411,7 @@ def run_postprocessing_sorting(
         wf_folder = working_folder / f"waveforms_{sorter_name}"
         we = si.WaveformExtractor.load_from_folder(wf_folder)
 
-        sorting_no_dup = si.remove_redundant_units(
-            we, remove_strategy="minimum_shift"
-        )
+        sorting_no_dup = si.remove_redundant_units(we, remove_strategy="minimum_shift")
 
         # Collect metrics and clean sorting
         metrics = si.compute_quality_metrics(we, load_if_exists=True)
@@ -416,11 +425,7 @@ def run_postprocessing_sorting(
             continue
 
         sorting_clean_folder = (
-            base_input_folder
-            / implant_name
-            / "Sortings_clean"
-            / name
-            / sorter_name
+            base_input_folder / implant_name / "Sortings_clean" / name / sorter_name
         )
 
         # Delete tree before recomputing
@@ -429,12 +434,8 @@ def run_postprocessing_sorting(
             shutil.rmtree(sorting_clean_folder)
 
         # Update Wf and create report with clean sorting
-        wf_clean_folder = (
-            working_folder / f"waveforms_clean_{sorter_name}"
-        )
-        report_clean_folder = (
-            working_folder / f"report_clean_{sorter_name}"
-        )
+        wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
+        report_clean_folder = working_folder / f"report_clean_{sorter_name}"
 
         # Delete any existing folders
         if wf_clean_folder.exists():
@@ -442,9 +443,7 @@ def run_postprocessing_sorting(
         if report_clean_folder.exists():
             shutil.rmtree(report_clean_folder)
 
-        clean_sorting = clean_sorting.save(
-            folder=sorting_clean_folder
-        )  # To NAS
+        clean_sorting = clean_sorting.save(folder=sorting_clean_folder)  # To NAS
 
         # Compute Wf and report for cleaned sorting
         we_clean = si.extract_waveforms(
@@ -504,7 +503,7 @@ def run_postprocessing_sorting(
         # si.export_to_phy(we, phy_folder, remove_if_exists=False, **job_kwargs)
 
 
-def compare_sorter_cleaned(spikeglx_folder, time_range=None):
+def compare_sorter_cleaned(spikeglx_folder, time_range=None, time_stamp="default"):
     """Comparison between sorters
 
     Parameters
@@ -529,11 +528,7 @@ def compare_sorter_cleaned(spikeglx_folder, time_range=None):
     sortings = []
     for sorter_name, params in sorters.items():
         sorting_clean_folder = (
-            base_input_folder
-            / implant_name
-            / "Sortings_clean"
-            / name
-            / sorter_name
+            base_input_folder / implant_name / "Sortings_clean" / name / sorter_name
         )
         sorting = si.load_extractor(sorting_clean_folder)
         sortings.append(sorting)
@@ -571,12 +566,14 @@ def compare_sorter_cleaned(spikeglx_folder, time_range=None):
 
 
 def run_all(
-    pre_check=True, sorting=True, postproc=True, compare_sorters=True
+    pre_check=True,
+    sorting=True,
+    postproc=True,
+    compare_sorters=True,
+    time_stamp="default",
 ):
     for implant_name, name, time_range, depth_range in recording_list:
-        spikeglx_folder = (
-            base_input_folder / implant_name / "Recordings" / name
-        )
+        spikeglx_folder = base_input_folder / implant_name / "Recordings" / name
 
         print(spikeglx_folder)
 
@@ -586,6 +583,7 @@ def run_all(
                 spikeglx_folder,
                 time_range=time_range,
                 depth_range=depth_range,
+                time_stamp=time_stamp,
             )
 
         if sorting:
@@ -594,6 +592,7 @@ def run_all(
                 spikeglx_folder,
                 time_range=time_range,
                 depth_range=depth_range,
+                time_stamp=time_stamp,
             )
 
         if postproc:
@@ -602,24 +601,27 @@ def run_all(
                 spikeglx_folder,
                 time_range=time_range,
                 depth_range=depth_range,
+                time_stamp=time_stamp,
             )
 
         if compare_sorters:
             # Compare sorters
             compare_sorter_cleaned(
-                spikeglx_folder, time_range=time_range
+                spikeglx_folder, time_range=time_range, time_stamp=time_stamp
             )
 
 
 if __name__ == "__main__":
-    pre_check = True
-    sorting = True
+    pre_check = False
+    sorting = False
     postproc = True
     compare_sorters = False
+    time_stamp = "2022-10"
 
     run_all(
         pre_check=pre_check,
         sorting=sorting,
         postproc=postproc,
         compare_sorters=compare_sorters,
+        time_stamp=time_stamp,
     )

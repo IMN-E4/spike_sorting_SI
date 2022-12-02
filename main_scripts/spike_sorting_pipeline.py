@@ -44,6 +44,8 @@ from spikeinterface.sortingcomponents.peak_localization import (
 )
 from probeinterface import write_prb
 import probeinterface as pi
+import networkx as nx
+import pandas as pd
 
 # Internal imports ### (Put here imports that are related to internal codes from the lab)
 from params import *
@@ -406,23 +408,57 @@ def run_postprocessing_sorting(
     name = working_folder.stem
     implant_name = spikeglx_folder.parents[1].stem
 
+    def merging_unit(potential_pair_merges, sorting):
+        graph = nx.Graph()
+        for u1, u2 in potential_pair_merges:
+            graph.add_edge(u1,u2)
+
+        final_merges = list(nx.components.connected_components(graph))
+        final_merges =[list(i) for i in final_merges] # just to convert to list of lists
+
+        for some_units in final_merges:
+            print(some_units)
+            sorting = si.MergeUnitsSorting(sorting, some_units)
+        
+        return sorting
+
     for sorter_name, params in sorters.items():
         # Read existing waveforms
         wf_folder = working_folder / f"waveforms_{sorter_name}"
         we = si.WaveformExtractor.load_from_folder(wf_folder)
+        print(we)
 
-        sorting_no_dup = si.remove_redundant_units(we, remove_strategy="minimum_shift")
-
+             
+        # sorting_no_dup = si.remove_redundant_units(we, remove_strategy="minimum_shift") # DELETE?
+        
         # Collect metrics and clean sorting
         metrics = si.compute_quality_metrics(we, load_if_exists=True)
         our_query = f"snr < {cleaning_params['snr_threshold']} | firing_rate < {cleaning_params['firing_rate']}"
         remove_unit_ids = metrics.query(our_query).index
 
-        clean_sorting = sorting_no_dup.remove_units(remove_unit_ids)
+        clean_sorting = we.sorting.remove_units(remove_unit_ids)
 
         if clean_sorting.unit_ids.size == 0:
             print("no units to work on")
             continue
+        
+        # First round of merges (very strict - mostly for single units)
+        first_potential_pair_merges = si.get_potential_auto_merge(we, steps='all') # list ofpairs
+        clean_sorting = merging_unit(first_potential_pair_merges, clean_sorting)
+        wf_temp = working_folder / f"waveforms_temp_{sorter_name}"
+        we_clean_first = si.extract_waveforms(
+            rec_preprocess,
+            clean_sorting,
+            folder=wf_temp,
+            load_if_exists=True,
+            **waveform_params,
+            **job_kwargs,
+        )
+        shutil.rmtree(wf_temp)
+
+        # Second round of merges (less strict - mostly for multi units)
+        potential_pair_merges = si.get_potential_auto_merge(we_clean_first, steps=[1,3,4]) # list ofpairs
+        clean_sorting = merging_unit(potential_pair_merges, clean_sorting)        
 
         sorting_clean_folder = (
             base_input_folder / implant_name / "Sortings_clean" / name / sorter_name
@@ -502,6 +538,17 @@ def run_postprocessing_sorting(
         # we = si.WaveformExtractor.load_from_folder(wf_folder)
         # si.export_to_phy(we, phy_folder, remove_if_exists=False, **job_kwargs)
 
+        # Add potential labels based on metrics
+        csv_metrics_path = report_clean_folder/'quality metrics.csv'
+        df = pd.read_csv(csv_metrics_path, index_col=0)
+        our_query = f"snr < {classification_params['snr']} & isi_violations_ratio > {classification_params['isi_violations_ratio']}"
+        multi_units = df.query(our_query).index
+        df['unit_type'] = 'single'
+        df.loc[multi_units, 'unit_type'] = 'multi'
+        df.to_csv(csv_metrics_path, index=True)
+
+
+
 
 def compare_sorter_cleaned(spikeglx_folder, time_range=None, time_stamp="default"):
     """Comparison between sorters
@@ -560,6 +607,18 @@ def compare_sorter_cleaned(spikeglx_folder, time_range=None, time_stamp="default
             # fig.savefig(comparison_figure_file)
 
 
+
+def test_path(spikeglx_folder, time_range=None, depth_range=None, time_stamp="default"):
+    rec_preprocess, working_folder = get_preprocess_recording(
+        spikeglx_folder,
+        time_range=time_range,
+        depth_range=depth_range,
+        time_stamp=time_stamp,
+    )
+
+    print(working_folder)
+    working_folder.mkdir()
+
 #################################
 ########### Run Batch ###########
 #################################
@@ -616,7 +675,7 @@ if __name__ == "__main__":
     sorting = False
     postproc = True
     compare_sorters = False
-    time_stamp = "2022-10"
+    time_stamp = "2022-09"
 
     run_all(
         pre_check=pre_check,

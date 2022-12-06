@@ -61,9 +61,23 @@ cleaning_params = {
     "firing_rate": 1,
 }
 
+
+first_merge_params = {"steps":None,
+        "maximum_distance_um":150,
+        "corr_diff_thresh":0.16,
+        "template_diff_thresh":0.25,
+        "minimum_spikes":1000
+}
+
+second_merge_params = {"steps":['min_spike', 'unit_positions', 'template_similarity'],
+    "template_diff_thresh": 0.25,
+    "maximum_distance_um": 20
+
+}
+
 classification_params = {
     "snr": 8,
-    "isi_violations_ratio": 1,
+    "isi_violations_ratio": 0.5,
 }
 
 

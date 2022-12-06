@@ -443,7 +443,7 @@ def run_postprocessing_sorting(
             continue
         
         # First round of merges (very strict - mostly for single units)
-        first_potential_pair_merges = si.get_potential_auto_merge(we, steps='all') # list ofpairs
+        first_potential_pair_merges = si.get_potential_auto_merge(we, **first_merge_params) # list ofpairs
         clean_sorting = merging_unit(first_potential_pair_merges, clean_sorting)
         wf_temp = working_folder / f"waveforms_temp_{sorter_name}"
         we_clean_first = si.extract_waveforms(
@@ -457,7 +457,7 @@ def run_postprocessing_sorting(
         shutil.rmtree(wf_temp)
 
         # Second round of merges (less strict - mostly for multi units)
-        potential_pair_merges = si.get_potential_auto_merge(we_clean_first, steps=[1,3,4]) # list ofpairs
+        potential_pair_merges = si.get_potential_auto_merge(we_clean_first, **second_merge_params)
         clean_sorting = merging_unit(potential_pair_merges, clean_sorting)        
 
         sorting_clean_folder = (

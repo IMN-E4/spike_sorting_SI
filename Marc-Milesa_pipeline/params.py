@@ -5,16 +5,22 @@ base_input_folder = Path(
     "/data2/MilesasData/dataset/"
 )
 
-output_path = Path("/data2/MilesasData/dataset/current-test_all/")
+output_path = Path("/data2/MilesasData/dataset/run_18012023_16072")
 
 job_kwargs = {
-    "n_jobs": 40,
+    "n_jobs": 25,
     "chunk_duration": "1s",
     "progress_bar": True,
 }
 
-preproc_params = { #### check with same if this is ok
-    " dtype":'float32',
+
+cleaning_params = {
+    "snr_threshold":2,
+    "firing_rate":0.5
+}
+
+preproc_params = { 
+    "dtype":'float32',
     "freq_min": 300,
     "freq_max": 6000,
     "filter_order" : 2,
@@ -46,51 +52,32 @@ amplitude_params = {
 
 
 #### Sorter params!
-tridesclous_params = {
-    "freq_min": 300.0,
-    "freq_max": 6000.0,
-    "detect_threshold": 5,
-    "common_ref_removal": False,
-    "nested_params": {
-        "chunksize": 30000,
-        "preprocessor": {"engine": "numpy"},
-        "peak_detector": {"adjacency_radius_um": 100},
-        "clean_peaks": {"alien_value_threshold": 100.0},
-        "peak_sampler": {
-            "mode": "rand_by_channel",
-            "nb_max_by_channel": 2000,
-        },
-    },
+tridesclous_params_default = {
+    "detect_threshold": 4
 }
 
 tridesclous_params_docker = {
     "docker_image" : "spikeinterface/tridesclous-base"
 }
 
-kilosort2_params = {
-    "docker_image": "spikeinterface/kilosort2-compiled-base",
-}
-
-kilosort2_5_params = {
-    "docker_image": "spikeinterface/kilosort2_5-compiled-base",
-}
-
 mountainsort4_params = {
     "docker_image": "spikeinterface/mountainsort4-base:latest",
 }
 
-spykingcircus2_params = {}
-
-yass_params = {
-    "docker_image": "spikeinterface/yass-base",
+waveclus_params = {
+    "docker_image": "spikeinterface/waveclus-compiled-base"
 }
 
+ironclust_params = {
+    "docker_image": "spikeinterface/ironclust-compiled-base"
+}
+
+
+
+
 sorters = {
-    "tridesclous": tridesclous_params,
-    # 'kilosort2' : kilosort2_params,
-    'kilosort2_5' : kilosort2_5_params,
-    # 'experimental_sorter1': dict(delete_existing=True),
-    # 'spykingcircus2' : spykingcircus2_params,
-    # "yass" : yass_params
-    "mountainsort4": mountainsort4_params
+    "tridesclous": tridesclous_params_default,
+    # "waveclus": waveclus_params,
+    # "ironclust": ironclust_params,
+    # "mountainsort4": mountainsort4_params
 }

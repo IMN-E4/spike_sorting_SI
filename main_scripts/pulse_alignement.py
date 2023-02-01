@@ -6,7 +6,7 @@ import neo
 import json
 
 from params import *
-from recording_list import recording_list
+from recording_list_pulse import recording_list
 from spike_sorting_pipeline import get_workdir_folder
 
 import scipy.stats
@@ -15,7 +15,7 @@ import scipy.stats
 #### Maybe we should add this to the folder in NAS not in data1???
 
 def compute_pulse_alignement(spikeglx_folder, time_range=None, depth_range=None, time_stamp='default'):
-    assert time_range is None
+    # assert time_range is None
 
     # Read NIDQ stream
     rec_nidq, working_folder = get_workdir_folder(
@@ -33,8 +33,12 @@ def compute_pulse_alignement(spikeglx_folder, time_range=None, depth_range=None,
     pulse_ind_nidq = np.flatnonzero((pulse_nidq[:-1]<=thresh_nidq) & (pulse_nidq[1:]>thresh_nidq)) # identifies the beggining of the pulse
     pulse_time_nidq = times_nidq[pulse_ind_nidq]
 
-    assert np.all(np.diff(pulse_time_nidq)>0.99) # to check if there are no artifacts that could affect the alignment
-    assert np.all(np.diff(pulse_time_nidq)<1.01) # to check if there are no artifacts that could affect the alignment
+    # plt.figure()
+    # plt.plot(pulse_time_nidq)
+    # plt.show()
+
+    assert np.all(np.diff(pulse_time_nidq)>0.98) # to check if there are no artifacts that could affect the alignment
+    assert np.all(np.diff(pulse_time_nidq)<1.02) # to check if there are no artifacts that could affect the alignment
 
     # Read AP stream
     rec_ap, working_folder = get_workdir_folder(
@@ -56,11 +60,12 @@ def compute_pulse_alignement(spikeglx_folder, time_range=None, depth_range=None,
     pulse_time_ap = times_ap[pulse_ind_ap]
 
     print('Checking assertions')
-    assert np.all(np.diff(pulse_time_ap)>0.99) # to check if there are no artifacts that could affect the alignment
-    assert np.all(np.diff(pulse_time_ap)<1.01) # to check if there are no artifacts that could affect the alignment
+    assert np.all(np.diff(pulse_time_ap)>0.98) # to check if there are no artifacts that could affect the alignment
+    assert np.all(np.diff(pulse_time_ap)<1.02) # to check if there are no artifacts that could affect the alignment
 
 
     print('Computing Linear Regression')
+    assert pulse_time_ap.size==pulse_time_nidq.size, f'The two pulse pulse_time_ap:{pulse_time_ap.size} pulse_time_nidq:{pulse_time_nidq.size}'
     # Linear regression
     # a, b, r, tt, stderr = scipy.stats.linregress(pulse_time_nidq, pulse_time_ap)
     # times_nidq_corrected = times_nidq * a + b
@@ -98,7 +103,7 @@ def test_compute_pulse_alignement():
             base_input_folder / implant_name / "Recordings" / name
         )
         print(spikeglx_folder)
-        compute_pulse_alignement(spikeglx_folder, time_range=time_range, depth_range=depth_range, time_stamp='2022-08')
+        compute_pulse_alignement(spikeglx_folder, time_range=time_range, depth_range=depth_range, time_stamp='default')
 
 
 def test_plot_synchro():

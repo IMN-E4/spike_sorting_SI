@@ -5,13 +5,19 @@ import numpy as np
 
 
 # visualize drift over time
-def plot_drift(peaks, rec_preprocess, peak_locations, name, figure_folder):
+def plot_drift(peaks, rec_preprocess, peak_locations, name, figure_folder, 
+              motion=None, temporal_bins=None, spatial_bins=None, alpha=0.02):
     fig, ax = plt.subplots()
     x = peaks['sample_ind'] / rec_preprocess.get_sampling_frequency()
     y = peak_locations['y']
-    ax.scatter(x, y, s=1, color='k', alpha=0.05)
+    ax.scatter(x, y, s=1, color='k', alpha=alpha)
     ax.set_title(name)
-    fig.savefig(figure_folder / 'peak_drift.png')
+
+    if motion is not None:
+        for i in range(motion.shape[1]):
+            ax.plot(temporal_bins, motion[:, i] + spatial_bins[i], color='m', alpha=0.8)
+    if figure_folder is not None:
+        fig.savefig(figure_folder / 'peak_drift.png')
 
 def plot_peaks_axis(rec_preprocess, peak_locations, name, figure_folder):
     # visualize peaks clouds on the probe ( , x, z)

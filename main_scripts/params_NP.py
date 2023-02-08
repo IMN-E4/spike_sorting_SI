@@ -15,7 +15,7 @@ job_kwargs = {
 
 metrics_list = [
     "snr",
-    "isi_violations",
+    "isi_violation",
     "num_spikes",
     "firing_rate",
     "presence_ratio",
@@ -45,6 +45,18 @@ peak_detection_params = {
     "local_radius_um": 150,
 }
 
+unit_location_params = {
+    "method":"monopolar_triangulation",
+    "radius_um":150,
+    "max_distance_um":1000,
+    "optimizer":"minimize_with_log_penality",
+
+}
+
+correlogram_params = {
+    "window_ms":50.0, 
+    "bin_ms":1.0,
+}
 
 peak_location_params = {
     "ms_before": 1.,
@@ -72,7 +84,7 @@ motion_estimation_params = dict(
     torch_device=None, batch_size=1,
     corr_threshold=0,
     # time_horizon_s=None,
-    time_horizon_s=200.,
+    time_horizon_s=400.,
     convergence_method='lsqr_robust',
     robust_regression_sigma=2, lsqr_robust_n_iter=20,
     ##
@@ -84,8 +96,8 @@ motion_estimation_params = dict(
 )
 
 cleaning_params = {
-    "snr_threshold": 5.0,
-    "firing_rate": 1,
+    "snr_threshold": 4.0,
+    "firing_rate": 0.5,
 }
 
 

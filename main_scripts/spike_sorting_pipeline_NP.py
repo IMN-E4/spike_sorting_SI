@@ -31,6 +31,7 @@ __status__ = (
 # Standard imports  ### (Put here built-in libraries - https://docs.python.org/3/library/)
 from datetime import datetime
 from distutils.command.clean import clean
+import json
 import shutil
 import os
 from pathlib import Path
@@ -43,17 +44,16 @@ from spikeinterface.sortingcomponents.peak_localization import (
     localize_peaks,
 )
 from spikeinterface.sortingcomponents.motion_estimation import estimate_motion
-
-
+from spikeinterface.sortingcomponents.motion_correction import CorrectMotionRecording
 from probeinterface import write_prb
 import probeinterface as pi
+from scipy.stats import linregress
 import networkx as nx
 import pandas as pd
 
 # Internal imports ### (Put here imports that are related to internal codes from the lab)
 from params_NP import *
-from experimental_sorting import run_experimental_sorting
-from recording_list import recording_list
+from recording_list_NP import recording_list
 from myfigures import *
 
 
@@ -78,6 +78,21 @@ def apply_preprocess(rec):
     rec_preproc = si.common_reference(rec, reference="local", local_radius=(50, 100)) ## global for cambridge probe, move to params (make conditions in params!)
     return rec_preproc
 
+def correct_drift(rec, working_folder):
+    motion_file0 = working_folder / "motion.npy"
+    motion_file1 = working_folder / "motion_temporal_bins.npy"
+    motion_file2 = working_folder / "motion_spatial_bins.npy"
+
+    if motion_file0.exists():
+        motion = np.load(motion_file0)
+        temporal_bins = np.load(motion_file1)
+        spatial_bins = np.load(motion_file2)
+    else:
+        raise 'drift params not computer! run pre sorting checks first!'
+
+
+    recording_corrected = CorrectMotionRecording(rec, motion, temporal_bins, spatial_bins)
+    return recording_corrected
 
 def get_workdir_folder(
     spikeglx_folder,
@@ -219,6 +234,8 @@ def get_preprocess_recording(
     probe_group.add_probe(rec_preprocess.get_probe())
     write_prb(working_folder / "arch.prb", probe_group)  # for lussac
 
+    print(rec_preprocess)
+
     return rec_preprocess, working_folder
 
 
@@ -325,7 +342,7 @@ def run_pre_sorting_checks(
 
 ########### Run sorting ###########
 def run_sorting_pipeline(
-    spikeglx_folder, time_range=None, depth_range=None, time_stamp="default"
+    spikeglx_folder, time_range=None, depth_range=None, time_stamp="default", drift_correction=False
 ):
     """Run sorting with different sorters and params
 
@@ -339,6 +356,9 @@ def run_sorting_pipeline(
 
     depth_range: None or list
         depth range to slice recording
+    
+    drift_correction: boolean
+        to correct for drift or not
 
     Returns
     -------
@@ -353,6 +373,9 @@ def run_sorting_pipeline(
         depth_range=depth_range,
         time_stamp=time_stamp,
     )
+
+    if drift_correction:
+        rec_preprocess = correct_drift(rec_preprocess, working_folder)
 
     # Run sorters and respective params
     for sorter_name, params in sorters.items():
@@ -399,7 +422,7 @@ def run_sorting_pipeline(
 
 ########### Post-processing ###########
 def run_postprocessing_sorting(
-    spikeglx_folder, time_range=None, depth_range=None, time_stamp="default"
+    spikeglx_folder, time_range=None, depth_range=None, time_stamp="default", drift_correction=False
 ):
     """Run post-processing on different sorters and params
     The idea is to have bad units removed according to metrics, and run auto-merging of units.
@@ -415,6 +438,9 @@ def run_postprocessing_sorting(
     depth_range: None or list
         depth range to slice recording
 
+    drift_correction: boolean
+        to correct for drift or not
+
     Returns
     -------
     This function will result in clean sorting, waveform, report, and phy output folders.
@@ -429,6 +455,10 @@ def run_postprocessing_sorting(
         depth_range=depth_range,
         time_stamp=time_stamp,
     )
+
+    if drift_correction:
+        rec_preprocess = correct_drift(rec_preprocess, working_folder)
+
     name = working_folder.stem
     implant_name = spikeglx_folder.parents[1].stem
 
@@ -439,35 +469,37 @@ def run_postprocessing_sorting(
 
         final_merges = list(nx.components.connected_components(graph))
         final_merges =[list(i) for i in final_merges] # just to convert to list of lists
+        print(f'final merges: {final_merges}')
 
         for some_units in final_merges:
             print(some_units)
             sorting = si.MergeUnitsSorting(sorting, some_units)
+
+        # sorting = si.MergeUnitsSorting(sorting, final_merges)
         
         return sorting
 
-    for sorter_name, params in sorters.items():
+    for sorter_name, _ in sorters.items():
         # Read existing waveforms
         wf_folder = working_folder / f"waveforms_{sorter_name}"
         we = si.WaveformExtractor.load_from_folder(wf_folder)
         print(we)
-
-             
-        # sorting_no_dup = si.remove_redundant_units(we, remove_strategy="minimum_shift") # DELETE?
         
         # Collect metrics and clean sorting
-        metrics = si.compute_quality_metrics(we, load_if_exists=True)
+        metrics = si.compute_quality_metrics(we, metric_names=metrics_list, load_if_exists=True)
         our_query = f"snr < {cleaning_params['snr_threshold']} | firing_rate < {cleaning_params['firing_rate']}"
         remove_unit_ids = metrics.query(our_query).index
 
         clean_sorting = we.sorting.remove_units(remove_unit_ids)
-
+        print(f'cleaned sorting: {clean_sorting}')
         if clean_sorting.unit_ids.size == 0:
             print("no units to work on")
             continue
         
         # First round of merges (very strict - mostly for single units)
+        print('Running first round of merges')
         first_potential_pair_merges = si.get_potential_auto_merge(we, **first_merge_params) # list ofpairs
+        print(f'potential merges: {first_potential_pair_merges}')
         clean_sorting = merging_unit(first_potential_pair_merges, clean_sorting)
         wf_temp = working_folder / f"waveforms_temp_{sorter_name}"
         we_clean_first = si.extract_waveforms(
@@ -481,7 +513,9 @@ def run_postprocessing_sorting(
         shutil.rmtree(wf_temp)
 
         # Second round of merges (less strict - mostly for multi units)
+        print('Running second round of merges')
         potential_pair_merges = si.get_potential_auto_merge(we_clean_first, **second_merge_params)
+        first_potential_pair_merges
         clean_sorting = merging_unit(potential_pair_merges, clean_sorting)        
 
         sorting_clean_folder = (
@@ -496,7 +530,7 @@ def run_postprocessing_sorting(
         # Update Wf and create report with clean sorting
         wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
         report_clean_folder = working_folder / f"report_clean_{sorter_name}"
-
+        
         # Delete any existing folders
         if wf_clean_folder.exists():
             shutil.rmtree(wf_clean_folder)
@@ -532,16 +566,15 @@ def run_postprocessing_sorting(
         print("computing locations")
         si.compute_unit_locations(
             we_clean,
-            method="monopolar_triangulation",
-            radius_um=150,
-            max_distance_um=1000,
-            optimizer="minimize_with_log_penality",
             load_if_exists=True,
+            **unit_location_params
         )
 
         print("compute correlograms")
         si.compute_correlograms(
-            we_clean, window_ms=50.0, bin_ms=1.0, load_if_exists=True
+            we_clean,  
+            load_if_exists=True,
+            **correlogram_params
         )
 
         if report_clean_folder.exists():
@@ -590,14 +623,14 @@ def compare_sorter_cleaned(spikeglx_folder, time_range=None, time_stamp="default
     Agreement matrix.
 
     """
-    rec_preprocess, working_folder = get_preprocess_recording(
+    _, working_folder = get_preprocess_recording(
         spikeglx_folder, time_range=time_range
     )
     name = working_folder.stem
     implant_name = spikeglx_folder.parents[1].stem
 
     sortings = []
-    for sorter_name, params in sorters.items():
+    for sorter_name, _ in sorters.items():
         sorting_clean_folder = (
             base_input_folder / implant_name / "Sortings_clean" / name / sorter_name
         )
@@ -630,8 +663,87 @@ def compare_sorter_cleaned(spikeglx_folder, time_range=None, time_stamp="default
             plt.show()
             # fig.savefig(comparison_figure_file)
 
+def compute_pulse_alignement(spikeglx_folder, time_range=None, depth_range=None, time_stamp='default'):
+    # assert time_range is None
+
+    # Read NIDQ stream
+    rec_nidq, working_folder = get_workdir_folder(
+        spikeglx_folder,
+        time_range=time_range,
+        depth_range=depth_range,
+        stream_id='nidq',
+        time_stamp=time_stamp
+    )
+    pulse_nidq = rec_nidq.get_traces(channel_ids=['nidq#XA1'])
+    pulse_nidq = pulse_nidq[:, 0]
+    thresh_nidq = (np.max(pulse_nidq) +  np.min(pulse_nidq)) / 2
+
+    times_nidq = rec_nidq.get_times()
+    pulse_ind_nidq = np.flatnonzero((pulse_nidq[:-1]<=thresh_nidq) & (pulse_nidq[1:]>thresh_nidq)) # identifies the beggining of the pulse
+    pulse_time_nidq = times_nidq[pulse_ind_nidq]
+
+    # plt.figure()
+    # plt.plot(pulse_time_nidq)
+    # plt.show()
+
+    assert np.all(np.diff(pulse_time_nidq)>0.98) # to check if there are no artifacts that could affect the alignment
+    assert np.all(np.diff(pulse_time_nidq)<1.02) # to check if there are no artifacts that could affect the alignment
+
+    # Read AP stream
+    rec_ap, working_folder = get_workdir_folder(
+        spikeglx_folder,
+        time_range=time_range,
+        depth_range=depth_range,
+        stream_id='imec0.ap',
+        load_sync_channel=True,
+        time_stamp=time_stamp
+    )
+    times_ap = rec_ap.get_times() # in seconds
+    pulse_ap = rec_ap.get_traces(channel_ids=[rec_ap.channel_ids[-1]])
+    pulse_ap = pulse_ap[:, 0]
 
 
+    # Define a threshold
+    thresh_ap = 30. # there was a weird peak so we couldn't use min max
+    pulse_ind_ap = np.flatnonzero((pulse_ap[:-1]<=thresh_ap) & (pulse_ap[1:]>thresh_ap)) # identifies the beggining of the pulse
+    pulse_time_ap = times_ap[pulse_ind_ap]
+
+    print('Checking assertions')
+    assert np.all(np.diff(pulse_time_ap)>0.98) # to check if there are no artifacts that could affect the alignment
+    assert np.all(np.diff(pulse_time_ap)<1.02) # to check if there are no artifacts that could affect the alignment
+
+
+    print('Computing Linear Regression')
+    assert pulse_time_ap.size==pulse_time_nidq.size, f'The two pulse pulse_time_ap:{pulse_time_ap.size} pulse_time_nidq:{pulse_time_nidq.size}'
+
+    a, b, r, tt, stderr = linregress(pulse_time_ap, pulse_time_nidq)
+    # times_ap_corrected = times_ap * a + b
+
+    print('regression imec.ap->nidq', 'a', a, 'b', b, 'stderr', stderr)
+    assert np.abs(1 - a) < 0.0001, 'Very strange slope'
+    assert np.abs(b) < 0.5, 'intercept (delta) very strange'
+    assert stderr < 1e-5, 'sterr (tolerance) very strange'
+
+    print('Saving')
+    synchro_folder = working_folder / 'synchro'
+    synchro_folder.mkdir(exist_ok=True)
+
+    np.save(synchro_folder / 'pulse_time_nidq.npy', pulse_time_nidq)
+    np.save(synchro_folder / 'pulse_time_ap.npy', pulse_time_ap)
+
+    # Save info for recording
+    synchro_dict = {'a':a,
+                'b':b, 
+                'stderr':stderr
+                }
+
+    with open(synchro_folder / 'synchro_imecap_corr_on_nidq.json', 'w') as outfile:
+        json.dump(synchro_dict, outfile, indent=4)
+
+
+
+
+##### TESTS
 def test_path(spikeglx_folder, time_range=None, depth_range=None, time_stamp="default"):
     rec_preprocess, working_folder = get_preprocess_recording(
         spikeglx_folder,
@@ -649,13 +761,14 @@ def test_path(spikeglx_folder, time_range=None, depth_range=None, time_stamp="de
 
 
 def run_all(
-    pre_check=True,
+    pre_check=False,
     sorting=True,
     postproc=True,
     compare_sorters=True,
-    time_stamp="default",
+     compute_alignment=False,
+    time_stamp="default"  
 ):
-    for implant_name, name, time_range, depth_range in recording_list:
+    for implant_name, name, time_range, depth_range, drift_correction in recording_list:
         spikeglx_folder = base_input_folder / implant_name / "Recordings" / name
 
         print(spikeglx_folder)
@@ -666,7 +779,7 @@ def run_all(
                 spikeglx_folder,
                 time_range=time_range,
                 depth_range=depth_range,
-                time_stamp=time_stamp,
+                time_stamp=time_stamp
             )
 
         if sorting:
@@ -676,6 +789,7 @@ def run_all(
                 time_range=time_range,
                 depth_range=depth_range,
                 time_stamp=time_stamp,
+                drift_correction=drift_correction
             )
 
         if postproc:
@@ -685,26 +799,39 @@ def run_all(
                 time_range=time_range,
                 depth_range=depth_range,
                 time_stamp=time_stamp,
+                drift_correction=drift_correction
             )
 
         if compare_sorters:
             # Compare sorters
             compare_sorter_cleaned(
-                spikeglx_folder, time_range=time_range, time_stamp=time_stamp
+                spikeglx_folder, 
+                time_range=time_range, 
+                time_stamp=time_stamp
+            )
+        
+        if compute_alignment:
+            compute_pulse_alignement(
+                spikeglx_folder, 
+                time_range=None, ## should we change this at some point?
+                depth_range=None, 
+                time_stamp=time_stamp
             )
 
 
 if __name__ == "__main__":
-    pre_check = True
+    pre_check = False
     sorting = False
-    postproc = False
+    postproc = True
     compare_sorters = False
-    time_stamp = "default"
+    compute_alignment = False
+    time_stamp = "2023-02"
 
     run_all(
         pre_check=pre_check,
         sorting=sorting,
         postproc=postproc,
         compare_sorters=compare_sorters,
-        time_stamp=time_stamp,
+        compute_alignment=compute_alignment,
+        time_stamp=time_stamp
     )

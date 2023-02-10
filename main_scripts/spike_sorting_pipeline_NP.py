@@ -161,8 +161,6 @@ def get_workdir_folder(
             / f"{time_stamp}-{name}-{int(time_range[0])}to{int(time_range[1])}"
         )
 
-    working_folder.mkdir(exist_ok=True, parents=True)
-    print(working_folder)
 
     if depth_range is not None and not load_sync_channel:
         print(f"Depth slicing between {depth_range[0]} and {depth_range[1]}")
@@ -170,8 +168,12 @@ def get_workdir_folder(
         keep = (yloc >= depth_range[0]) & (yloc <= depth_range[1])
         keep_chan_ids = rec.channel_ids[keep]
         rec = rec.channel_slice(channel_ids=keep_chan_ids)
+        working_folder = working_folder / f"depth_{depth_range[0]}_to_{depth_range[1]}"
     else:
         print(f"Using all channels")
+    
+    working_folder.mkdir(exist_ok=True, parents=True)
+    print(working_folder)
 
     return rec, working_folder
 
@@ -467,16 +469,25 @@ def run_postprocessing_sorting(
         for u1, u2 in potential_pair_merges:
             graph.add_edge(u1,u2)
 
+        # print(f'unit ids: {sorting.unit_ids}')
         final_merges = list(nx.components.connected_components(graph))
-        final_merges =[list(i) for i in final_merges] # just to convert to list of lists
-        print(f'final merges: {final_merges}')
-
-        for some_units in final_merges:
-            print(some_units)
-            sorting = si.MergeUnitsSorting(sorting, some_units)
-
-        # sorting = si.MergeUnitsSorting(sorting, final_merges)
         
+        # Merge pairs
+        final_merges_pairs = [list(np.array(i).tolist()) for i in final_merges if len(i)==2] # just to convert to list of lists
+        print(f'final merges: {final_merges_pairs}')
+        if len(final_merges_pairs)>=1:
+            sorting = si.MergeUnitsSorting(sorting, final_merges_pairs)
+
+        final_merges_triplets = [list(np.array(i).tolist()) for i in final_merges if len(i)==3] # just to convert to list of lists
+        print(f'final merges: {final_merges_triplets}')
+        if len(final_merges_triplets)>=1:
+            sorting = si.MergeUnitsSorting(sorting, final_merges_triplets)
+
+        final_merges_quad = [list(np.array(i).tolist()) for i in final_merges if len(i)==4] # just to convert to list of lists
+        print(f'final merges: {final_merges_quad}')
+        if len(final_merges_quad)>=1:
+            sorting = si.MergeUnitsSorting(sorting, final_merges_quad)
+
         return sorting
 
     for sorter_name, _ in sorters.items():
@@ -485,7 +496,7 @@ def run_postprocessing_sorting(
         we = si.WaveformExtractor.load_from_folder(wf_folder)
         print(we)
         
-        # Collect metrics and clean sorting
+        # Collect metrics / cleans sorting based on query / creates temporary we after query
         metrics = si.compute_quality_metrics(we, metric_names=metrics_list, load_if_exists=True)
         our_query = f"snr < {cleaning_params['snr_threshold']} | firing_rate < {cleaning_params['firing_rate']}"
         remove_unit_ids = metrics.query(our_query).index
@@ -496,36 +507,50 @@ def run_postprocessing_sorting(
             print("no units to work on")
             continue
         
-        # First round of merges (very strict - mostly for single units)
-        print('Running first round of merges')
-        first_potential_pair_merges = si.get_potential_auto_merge(we, **first_merge_params) # list ofpairs
-        print(f'potential merges: {first_potential_pair_merges}')
-        clean_sorting = merging_unit(first_potential_pair_merges, clean_sorting)
-        wf_temp = working_folder / f"waveforms_temp_{sorter_name}"
-        we_clean_first = si.extract_waveforms(
+        wf_temp_query = working_folder / f"waveforms_temp_query_{sorter_name}"
+        temp_query_we = si.extract_waveforms(
             rec_preprocess,
             clean_sorting,
-            folder=wf_temp,
+            folder=wf_temp_query,
             load_if_exists=True,
             **waveform_params,
             **job_kwargs,
         )
-        shutil.rmtree(wf_temp)
+        shutil.rmtree(wf_temp_query)
+        
+        # First round of merges (very strict - mostly for single units)
+        print('Running first round of merges')
+        first_potential_pair_merges = si.get_potential_auto_merge(temp_query_we, **first_merge_params) # list of pairs
+        print(f'potential merges: {first_potential_pair_merges}')
+        clean_sorting = merging_unit(first_potential_pair_merges, clean_sorting)
+        print(clean_sorting)
+
+        wf_temp_merges = working_folder / f"waveforms_temp_merge_{sorter_name}"
+        we_clean_first = si.extract_waveforms(
+            rec_preprocess,
+            clean_sorting,
+            folder=wf_temp_merges,
+            load_if_exists=True,
+            **waveform_params,
+            **job_kwargs,
+        )
+        shutil.rmtree(wf_temp_merges)
 
         # Second round of merges (less strict - mostly for multi units)
         print('Running second round of merges')
         potential_pair_merges = si.get_potential_auto_merge(we_clean_first, **second_merge_params)
-        first_potential_pair_merges
-        clean_sorting = merging_unit(potential_pair_merges, clean_sorting)        
+        print(f'potential merges: {potential_pair_merges}')
+        clean_sorting = merging_unit(potential_pair_merges, clean_sorting)
+        print(clean_sorting)          
 
+        
+        # Delete tree before recomputing
         sorting_clean_folder = (
             base_input_folder / implant_name / "Sortings_clean" / name / sorter_name
         )
-
-        # Delete tree before recomputing
         if sorting_clean_folder.exists():
             print("remove exists clean", sorting_clean_folder)
-            shutil.rmtree(sorting_clean_folder)
+            shutil.rmtree(sorting_clean_folder)         
 
         # Update Wf and create report with clean sorting
         wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
@@ -549,7 +574,6 @@ def run_postprocessing_sorting(
             **job_kwargs,
         )
         print(we_clean)
-
         print("computing spike amplitudes")
         si.compute_spike_amplitudes(
             we_clean,
@@ -757,12 +781,20 @@ def test_path(spikeglx_folder, time_range=None, depth_range=None, time_stamp="de
 
 #################################
 ########### Run Batch ###########
-#################################
+#################################('Anesth_10_01_2023', 'Rec_10_01_2023_2_g0', None, [0, 3300], False),
+    # ('Anesth_10_01_2023', 'Rec_10_01_2023_3_g0', None, None, False),
+    # ('Anesth_10_01_2023', 'Rec_10_01_2023_4_g0', None, None, False),
+    # ('Anesth_10_01_2023', 'Rec_10_01_2023_5_g0', None, None, False),
+    # ('Anesth_10_01_2023', 'Rec_10_01_2023_6_g0', None, None, False),
+    # ('Anesth_21_01_2023', 'Rec_21_01_2023_1_g0', None, None, False),
+    # ('Anesth_21_01_2023', 'Rec_21_01_2023_2_g0', None, [0,3300], False),
+    # ('Anesth_21_01_2023', 'Rec_21_01_2023_3_g0', [0,1500], [0,3200], False),
+    # ('Anesth_21_01_2023', 'Rec_21_01_2023_3_g0', [1500,2700], [3200, 3840], False)
 
 
 def run_all(
     pre_check=False,
-    sorting=True,
+    sorting=False,
     postproc=True,
     compare_sorters=True,
      compute_alignment=False,
@@ -813,8 +845,8 @@ def run_all(
         if compute_alignment:
             compute_pulse_alignement(
                 spikeglx_folder, 
-                time_range=None, ## should we change this at some point?
-                depth_range=None, 
+                time_range=time_range,
+                depth_range=None,  # to be sure pulse channel is sliced correctly
                 time_stamp=time_stamp
             )
 
@@ -825,7 +857,7 @@ if __name__ == "__main__":
     postproc = True
     compare_sorters = False
     compute_alignment = False
-    time_stamp = "2023-02"
+    time_stamp = "2023-01"
 
     run_all(
         pre_check=pre_check,

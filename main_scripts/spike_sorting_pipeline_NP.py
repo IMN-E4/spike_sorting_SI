@@ -461,8 +461,11 @@ def run_postprocessing_sorting(
     if drift_correction:
         rec_preprocess = correct_drift(rec_preprocess, working_folder)
 
-    name = working_folder.stem
-    implant_name = spikeglx_folder.parents[1].stem
+    name = working_folder.parts[6]
+    if len(working_folder.parts)>7:
+        name = working_folder.parts[6]+'/'+ working_folder.parts[7]
+        print(name)
+    implant_name = spikeglx_folder.parents[1].stem  
 
     def merging_unit(potential_pair_merges, sorting):
         graph = nx.Graph()
@@ -781,17 +784,7 @@ def test_path(spikeglx_folder, time_range=None, depth_range=None, time_stamp="de
 
 #################################
 ########### Run Batch ###########
-#################################('Anesth_10_01_2023', 'Rec_10_01_2023_2_g0', None, [0, 3300], False),
-    # ('Anesth_10_01_2023', 'Rec_10_01_2023_3_g0', None, None, False),
-    # ('Anesth_10_01_2023', 'Rec_10_01_2023_4_g0', None, None, False),
-    # ('Anesth_10_01_2023', 'Rec_10_01_2023_5_g0', None, None, False),
-    # ('Anesth_10_01_2023', 'Rec_10_01_2023_6_g0', None, None, False),
-    # ('Anesth_21_01_2023', 'Rec_21_01_2023_1_g0', None, None, False),
-    # ('Anesth_21_01_2023', 'Rec_21_01_2023_2_g0', None, [0,3300], False),
-    # ('Anesth_21_01_2023', 'Rec_21_01_2023_3_g0', [0,1500], [0,3200], False),
-    # ('Anesth_21_01_2023', 'Rec_21_01_2023_3_g0', [1500,2700], [3200, 3840], False)
-
-
+#################################
 def run_all(
     pre_check=False,
     sorting=False,
@@ -843,6 +836,7 @@ def run_all(
             )
         
         if compute_alignment:
+            print('computing pulse alignement')
             compute_pulse_alignement(
                 spikeglx_folder, 
                 time_range=time_range,
@@ -854,9 +848,9 @@ def run_all(
 if __name__ == "__main__":
     pre_check = False
     sorting = False
-    postproc = True
+    postproc = False
     compare_sorters = False
-    compute_alignment = False
+    compute_alignment = True
     time_stamp = "2023-01"
 
     run_all(

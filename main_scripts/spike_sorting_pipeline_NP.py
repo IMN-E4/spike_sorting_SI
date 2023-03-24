@@ -55,6 +55,7 @@ import pandas as pd
 from params_NP import *
 from recording_list_NP import recording_list
 from myfigures import *
+from data_handling import get_spikeglx_folder
 
 
 ########### Preparatory Functions ###########
@@ -94,7 +95,7 @@ def correct_drift(rec, working_folder):
     recording_corrected = CorrectMotionRecording(rec, motion, temporal_bins, spatial_bins)
     return recording_corrected
 
-def get_workdir_folder(
+def get_workdir_and_rec(
     spikeglx_folder,
     time_range,
     depth_range,
@@ -206,7 +207,7 @@ def get_preprocess_recording(
     working_folder: Path
         working folder
     """
-    rec, working_folder = get_workdir_folder(
+    rec, working_folder = get_workdir_and_rec(
         spikeglx_folder,
         time_range=time_range,
         depth_range=depth_range,
@@ -472,24 +473,29 @@ def run_postprocessing_sorting(
         for u1, u2 in potential_pair_merges:
             graph.add_edge(u1,u2)
 
-        # print(f'unit ids: {sorting.unit_ids}')
+        print(f'unit ids: {sorting.unit_ids}')
+        print(sorting.unit_ids.dtype, )
         final_merges = list(nx.components.connected_components(graph))
+        final_merges = [list(np.array(i).tolist()) for i in final_merges]
+        print(final_merges)
+        print(final_merges[0][0] in  sorting.unit_ids)
+        sorting = si.MergeUnitsSorting(sorting, final_merges)
         
-        # Merge pairs
-        final_merges_pairs = [list(np.array(i).tolist()) for i in final_merges if len(i)==2] # just to convert to list of lists
-        print(f'final merges: {final_merges_pairs}')
-        if len(final_merges_pairs)>=1:
-            sorting = si.MergeUnitsSorting(sorting, final_merges_pairs)
+        # # Merge pairs
+        # final_merges_pairs = [list(np.array(i).tolist()) for i in final_merges if len(i)==2] # just to convert to list of lists
+        # print(f'final merges: {final_merges_pairs}')
+        # if len(final_merges_pairs)>=1:
+        #     sorting = si.MergeUnitsSorting(sorting, final_merges_pairs)
 
-        final_merges_triplets = [list(np.array(i).tolist()) for i in final_merges if len(i)==3] # just to convert to list of lists
-        print(f'final merges: {final_merges_triplets}')
-        if len(final_merges_triplets)>=1:
-            sorting = si.MergeUnitsSorting(sorting, final_merges_triplets)
+        # final_merges_triplets = [list(np.array(i).tolist()) for i in final_merges if len(i)==3] # just to convert to list of lists
+        # print(f'final merges: {final_merges_triplets}')
+        # if len(final_merges_triplets)>=1:
+        #     sorting = si.MergeUnitsSorting(sorting, final_merges_triplets)
 
-        final_merges_quad = [list(np.array(i).tolist()) for i in final_merges if len(i)==4] # just to convert to list of lists
-        print(f'final merges: {final_merges_quad}')
-        if len(final_merges_quad)>=1:
-            sorting = si.MergeUnitsSorting(sorting, final_merges_quad)
+        # final_merges_quad = [list(np.array(i).tolist()) for i in final_merges if len(i)==4] # just to convert to list of lists
+        # print(f'final merges: {final_merges_quad}')
+        # if len(final_merges_quad)>=1:
+        #     sorting = si.MergeUnitsSorting(sorting, final_merges_quad)
 
         return sorting
 
@@ -519,8 +525,10 @@ def run_postprocessing_sorting(
             **waveform_params,
             **job_kwargs,
         )
-        shutil.rmtree(wf_temp_query)
+        # shutil.rmtree(wf_temp_query)
         
+        # print(clean_sorting.unit_ids)
+
         # First round of merges (very strict - mostly for single units)
         print('Running first round of merges')
         first_potential_pair_merges = si.get_potential_auto_merge(temp_query_we, **first_merge_params) # list of pairs
@@ -694,7 +702,7 @@ def compute_pulse_alignement(spikeglx_folder, time_range=None, depth_range=None,
     # assert time_range is None
 
     # Read NIDQ stream
-    rec_nidq, working_folder = get_workdir_folder(
+    rec_nidq, working_folder = get_workdir_and_rec(
         spikeglx_folder,
         time_range=time_range,
         depth_range=depth_range,
@@ -717,7 +725,7 @@ def compute_pulse_alignement(spikeglx_folder, time_range=None, depth_range=None,
     assert np.all(np.diff(pulse_time_nidq)<1.02) # to check if there are no artifacts that could affect the alignment
 
     # Read AP stream
-    rec_ap, working_folder = get_workdir_folder(
+    rec_ap, working_folder = get_workdir_and_rec(
         spikeglx_folder,
         time_range=time_range,
         depth_range=depth_range,
@@ -787,14 +795,14 @@ def test_path(spikeglx_folder, time_range=None, depth_range=None, time_stamp="de
 #################################
 def run_all(
     pre_check=False,
-    sorting=False,
+    sorting=True,
     postproc=True,
-    compare_sorters=True,
-     compute_alignment=False,
+    compare_sorters=False,
+    compute_alignment=False,
     time_stamp="default"  
 ):
-    for implant_name, name, time_range, depth_range, drift_correction in recording_list:
-        spikeglx_folder = base_input_folder / implant_name / "Recordings" / name
+    for implant_name, rec_name, time_range, depth_range, drift_correction in recording_list:
+        spikeglx_folder = get_spikeglx_folder(implant_name, rec_name)
 
         print(spikeglx_folder)
 
@@ -847,11 +855,11 @@ def run_all(
 
 if __name__ == "__main__":
     pre_check = False
-    sorting = False
-    postproc = False
+    sorting = True
+    postproc = True
     compare_sorters = False
-    compute_alignment = True
-    time_stamp = "2023-01"
+    compute_alignment = False
+    time_stamp = "default"
 
     run_all(
         pre_check=pre_check,

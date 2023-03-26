@@ -32,9 +32,6 @@ def get_working_folder(
 
     Returns
     -------
-    rec: spikeinterface object
-        recording
-
     working_folder: Path
         working folder
     """
@@ -96,17 +93,6 @@ def get_sorting_folder(implant_name, rec_name, time_range, depth_range, time_sta
         sorting_clean_folder = sorting_clean_folder / f"depth_{depth_range[0]}_to_{depth_range[1]}"
     else:
         print(f"Using all channels")
-
-
-    # name = working_folder.parts[6]
-    # if len(working_folder.parts)>7:
-    #     name = working_folder.parts[6]+'/'+ working_folder.parts[7]
-    #     print(name)
-
-
-    # sorting_clean_folder = (
-    #         base_input_folder / implant_name / "Sortings_clean" / name / sorter_name
-        # )
     return sorting_clean_folder
 
 def get_synchro_file(implant_name, rec_name, time_range, time_stamp):

@@ -8,7 +8,7 @@ import numpy as np
 from ephyviewer.myqt import QT
 from ephyviewer.tools import ParamDialog
 import json
-from data_handling import get_sorting_folder, get_spikeglx_folder, get_working_folder, get_synchro_file
+from path_handling import get_sorting_folder, get_spikeglx_folder, get_working_folder, get_synchro_file
 
 
 def open_ephyviewer_mainwindow(key_tuple,

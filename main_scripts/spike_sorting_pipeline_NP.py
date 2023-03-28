@@ -794,8 +794,8 @@ def run_all(
 
 if __name__ == "__main__":
     pre_check = False
-    sorting = True
-    postproc = True
+    sorting = False
+    postproc = False
     compare_sorters = False
     compute_alignment = True
     time_stamp = "default"

@@ -8,7 +8,7 @@ base_input_folder = Path(
 base_sorting_cache_folder = Path("/data2/Neuropixel_recordings/Cerebellum/")
 
 job_kwargs = {
-    "n_jobs": 20,
+    "n_jobs": 40,
     "chunk_duration": "1s",
     "progress_bar": True,
 }
@@ -97,7 +97,7 @@ motion_estimation_params = dict(
 
 cleaning_params = {
     "snr_threshold": 4.0,
-    "firing_rate": 0.5,
+    "firing_rate": 0.2,
 }
 
 

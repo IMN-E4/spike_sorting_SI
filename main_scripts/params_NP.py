@@ -2,10 +2,10 @@ from pathlib import Path
 
 
 base_input_folder = Path(
-    "/nas/Neuropixel_Recordings/Cerebellum/"
+    "/nas/Neuropixel_Recordings/AreaX-LMAN/"
 )
 
-base_sorting_cache_folder = Path("/data2/Neuropixel_recordings/Cerebellum/")
+base_sorting_cache_folder = Path("/data1/Neuropixel_recordings/")
 
 job_kwargs = {
     "n_jobs": 40,

@@ -61,88 +61,7 @@ from path_handling import (
     get_working_folder,
     get_sorting_folder,
 )
-
-
-########### Preparatory Functions ###########
-def apply_preprocess(rec):
-    """Apply lazy preprocessing chain.
-
-    Parameters
-    ----------
-    rec: spikeinterface object
-        recording to apply preprocessing on.
-
-    Returns
-    -------
-    rec_preproc: spikeinterface object
-        preprocessed rec
-    """
-    # Bandpass filter
-    rec = si.bandpass_filter(rec, freq_min=300, freq_max=6000)
-
-    # Common referencing
-    rec_preproc = si.common_reference(
-        rec, reference="local", local_radius=(50, 100)
-    )  ## global for cambridge probe, move to params (make conditions in params!)
-    return rec_preproc
-
-
-def correct_drift(rec, working_folder):
-    motion_file0 = working_folder / "motion.npy"
-    motion_file1 = working_folder / "motion_temporal_bins.npy"
-    motion_file2 = working_folder / "motion_spatial_bins.npy"
-
-    if motion_file0.exists():
-        motion = np.load(motion_file0)
-        temporal_bins = np.load(motion_file1)
-        spatial_bins = np.load(motion_file2)
-    else:
-        raise "drift params not computer! run pre sorting checks first!"
-
-    recording_corrected = CorrectMotionRecording(
-        rec, motion, temporal_bins, spatial_bins
-    )
-    return recording_corrected
-
-
-def slice_rec_time(rec, time_range):
-    fs = rec.get_sampling_frequency()
-
-    # Time slicing
-    print(f"Time slicing between {time_range[0]} and {time_range[1]}")
-    time_range = tuple(float(e) for e in time_range)
-    frame_range = (int(t * fs) for t in time_range)
-    rec = rec.frame_slice(*frame_range)
-    return rec
-
-
-def slice_rec_depth(rec, depth_range):
-    fs = rec.get_sampling_frequency()
-
-    # Channel Slicing
-    print(f"Depth slicing between {depth_range[0]} and {depth_range[1]}")
-    yloc = rec.get_channel_locations()[:, 1]
-    keep = (yloc >= depth_range[0]) & (yloc <= depth_range[1])
-    keep_chan_ids = rec.channel_ids[keep]
-    rec = rec.channel_slice(channel_ids=keep_chan_ids)
-    return rec
-
-
-def read_rec(
-    spikeglx_folder, stream_id, time_range, depth_range, load_sync_channel=False
-):
-    rec = si.read_spikeglx(
-        spikeglx_folder, stream_id=stream_id, load_sync_channel=load_sync_channel
-    )
-
-    if time_range is not None:
-        rec = slice_rec_time(rec, time_range)
-
-    elif depth_range is not None:
-        rec = slice_rec_depth(rec, depth_range)
-
-    return rec
-
+from utils import *
 
 ########### Preprocess & Checks ###########
 def get_preprocess_recording(
@@ -518,6 +437,7 @@ def run_postprocessing_sorting(
             **waveform_params,
             **job_kwargs,
         )
+
         print(we_clean)
         print("computing spike amplitudes")
         si.compute_spike_amplitudes(
@@ -537,6 +457,8 @@ def run_postprocessing_sorting(
 
         print("compute correlograms")
         si.compute_correlograms(we_clean, load_if_exists=True, **correlogram_params)
+
+        si.compute_template_metrics(we_clean)
 
         if report_clean_folder.exists():
             print("report already there for ", report_clean_folder)
@@ -664,6 +586,21 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
 
     # Define a threshold
     thresh_ap = 30.0  # there was a weird peak so we couldn't use min max
+
+    # def quick_fix_artifact(array):
+    #     """created this function as a quick fix because in rec 3 imp 101121, 
+    #     there was a weird artifact impeding pulse alignment computation!
+    #     we should find a better way of automating this!!!!
+    #     """
+    #     thr = 2.5*np.mean(array)
+    #     array = np.array(array)
+    #     array[array > thr] = 0
+    #     return array
+
+    # pulse_ap = quick_fix_artifact(pulse_ap)
+    # plt.plot(pulse_ap)
+    # plt.show()
+
     pulse_ind_ap = np.flatnonzero(
         (pulse_ap[:-1] <= thresh_ap) & (pulse_ap[1:] > thresh_ap)
     )  # identifies the beggining of the pulse
@@ -672,10 +609,10 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
     print("Checking assertions")
     assert np.all(
         np.diff(pulse_time_ap) > 0.98
-    )  # to check if there are no artifacts that could affect the alignment
+    ), 'didnt pass first assertion'  # to check if there are no artifacts that could affect the alignment
     assert np.all(
         np.diff(pulse_time_ap) < 1.02
-    )  # to check if there are no artifacts that could affect the alignment
+    ),  'didnt pass second assertion' # to check if there are no artifacts that could affect the alignment
 
     print("Computing Linear Regression")
     assert (
@@ -793,11 +730,11 @@ def run_all(
 
 
 if __name__ == "__main__":
-    pre_check = False
-    sorting = False
-    postproc = False
+    pre_check = True
+    sorting = True
+    postproc = True
     compare_sorters = False
-    compute_alignment = True
+    compute_alignment = False
     time_stamp = "default"
 
     run_all(

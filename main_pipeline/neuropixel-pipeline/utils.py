@@ -42,8 +42,6 @@ def slice_rec_time(rec, time_range):
 
 
 def slice_rec_depth(rec, depth_range):
-    fs = rec.get_sampling_frequency()
-
     # Channel Slicing
     print(f"Depth slicing between {depth_range[0]} and {depth_range[1]}")
     yloc = rec.get_channel_locations()[:, 1]

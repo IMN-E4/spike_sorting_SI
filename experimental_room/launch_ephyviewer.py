@@ -21,7 +21,7 @@ def open_ephyviewer_mainwindow(spikeglx_folder,
 
     ### Sources
     if ap:   
-        recording_spike = si.SpikeGLXRecordingExtractor(spikeglx_folder, stream_id='imec0.ap') # ap file        
+        recording_spike = si.SpikeGLXRecordingExtractor(spikeglx_folder, stream_id='imec0.ap', load_sync_channel=True) # ap file
         sig_source0 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_spike)
         view0 = ephyviewer.TraceViewer(source=sig_source0, name='ap') # Trace of ap signal
         

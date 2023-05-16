@@ -1,14 +1,9 @@
 import matplotlib.pyplot as plt
 from pathlib import Path
-import spikeinterface.full as si
 import numpy as np
-import neo
 import json
 
-from params import *
-from recording_list_pulse import recording_list
-from spike_sorting_pipeline import get_workdir_folder
-
+from spike_sorting_pipeline_NP import get_workdir_folder
 import scipy.stats
 
 
@@ -66,9 +61,6 @@ def compute_pulse_alignement(spikeglx_folder, time_range=None, depth_range=None,
 
     print('Computing Linear Regression')
     assert pulse_time_ap.size==pulse_time_nidq.size, f'The two pulse pulse_time_ap:{pulse_time_ap.size} pulse_time_nidq:{pulse_time_nidq.size}'
-    # Linear regression
-    # a, b, r, tt, stderr = scipy.stats.linregress(pulse_time_nidq, pulse_time_ap)
-    # times_nidq_corrected = times_nidq * a + b
 
     a, b, r, tt, stderr = scipy.stats.linregress(pulse_time_ap, pulse_time_nidq)
     # times_ap_corrected = times_ap * a + b
@@ -196,3 +188,4 @@ if __name__ == '__main__':
     test_compute_pulse_alignement()
 
     # test_plot_synchro()
+    

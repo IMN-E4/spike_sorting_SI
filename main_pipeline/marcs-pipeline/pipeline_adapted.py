@@ -6,16 +6,13 @@ This is the pipeline for Marc/Milesa's data.
 December 2022
 
 Uses raw unsigned files and splits them into 32 channels (a sorting per channel).
-
-preprocessed recording and waveforms are saved in local cache, final clean sorting
-is saved in NAS.
 """
 
 __author__ = "Eduarda Centeno & Samuel Garcia"
 __contact__ = "teame4.leblois@gmail.com"
 __date__ = "2022/12/07"  ### Date it was created
 __status__ = (
-    "Production"  ### Production = still being developed. Else: Concluded/Finished.
+    "Finished"  ### Production = still being developed. Else: Concluded/Finished.
 )
 
 
@@ -49,7 +46,7 @@ def prepare_recs(
     dtype="uint16",
     n_channels=32,
     dist_contacts=40,
-    gain_val=0.3815,
+    gain_val=0.3815, ### where did we get this from?? Ask Marc that is stable.
 ):
     """Create splitted recs with probe group
 
@@ -68,10 +65,13 @@ def prepare_recs(
         data dtype. default: 'uint16'
 
     n_channels: int
-        number of channels in raw file. default: 33
+        number of channels in raw file. default: 32
 
     dist_contacts: int
         distance between contact in probe (we are creating a fake probe)
+
+    gain_val: float
+        gain value
 
     Returns
     -------
@@ -79,7 +79,7 @@ def prepare_recs(
         preprocessed rec
     """
     if dtype == "uint16":
-        offset_to_uv = -gain_val * 2**15
+        offset_to_uv = -gain_val * 2**15 ## Midpoint of the DAC
     else:
         offset_to_uv = None
 
@@ -138,7 +138,7 @@ def run_spike_sorting(files):
             shutil.rmtree(tmp_path)
 
         rec_preprocess_one_seg_saved = rec_preprocess_one_seg.save(
-            folder=tmp_path, n_jobs=10
+            folder=tmp_path, n_jobs=job_kwargs['n_jobs']
         )  # Saving was necessary to correct it for sorters
         print(rec_preprocess_one_seg_saved)
 
@@ -260,7 +260,7 @@ def run_spike_sorting(files):
 
             print("compute correlograms")
             si.compute_correlograms(
-                we_clean, window_ms=50.0, bin_ms=1.0, load_if_exists=False
+                we_clean, load_if_exists=False, **correlogram_params
             )
 
             try:
@@ -280,11 +280,32 @@ def run_spike_sorting(files):
             except:
                 print(f"report failed for {report_folder}")
 
+def count_total_units_per_sorter():
+    working_folder = Path(output_path)
+    for sorter_name, _ in sorters.items():
+        contacts = working_folder.glob('contact*')
+        count = 0
+        for folder in contacts:
+            sorting_clean_folder = (folder / f"sorting_{sorter_name}_clean"
+            )
+            if sorting_clean_folder.exists():
+                # print(sorting_clean_folder)
+                n_units = si.load_extractor(sorting_clean_folder).get_num_units()
+                count += n_units
+            
+        print(f'{sorter_name} has a total of {count} units')
+
+
 
 if __name__ == "__main__":
+
+    ## To run spike sorting!
     files = list(base_input_folder.glob("*.raw"))
     file_num = [int(f.stem.split("_")[-1]) for f in files]
     order = np.argsort(file_num)
     files = [files[i] for i in order]
-    print(files)
-    run_spike_sorting(files[1:])
+    # print(files)
+    run_spike_sorting(files[1:])  ## comment or uncomment
+
+    ## To count units per spike sorter!
+    # count_total_units_per_sorter() ## comment or uncomment

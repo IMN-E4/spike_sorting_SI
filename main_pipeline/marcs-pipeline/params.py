@@ -5,7 +5,7 @@ base_input_folder = Path(
     "/data2/MilesasData/dataset/"
 )
 
-output_path = Path("/data2/MilesasData/dataset/run_18012023_16072")
+output_path = Path("/data2/MilesasData/dataset/run_02062023_to_erase")
 
 job_kwargs = {
     "n_jobs": 25,
@@ -49,6 +49,11 @@ amplitude_params = {
     "peak_sign": peak_sign,
 }
 
+correlogram_params = {
+    "window_ms":50.,
+    "bin_ms":1.0
+}
+
 
 
 #### Sorter params!
@@ -77,7 +82,7 @@ ironclust_params = {
 
 sorters = {
     "tridesclous": tridesclous_params_default,
-    # "waveclus": waveclus_params,
-    # "ironclust": ironclust_params,
-    # "mountainsort4": mountainsort4_params
+    "waveclus": waveclus_params,
+    "ironclust": ironclust_params,
+    "mountainsort4": mountainsort4_params
 }

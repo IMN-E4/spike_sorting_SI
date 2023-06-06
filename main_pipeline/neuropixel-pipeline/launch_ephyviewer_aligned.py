@@ -46,25 +46,26 @@ from utils import *
 def open_ephyviewer_mainwindow(
     key_tuple,
     sorter_name,
-    raw_ap=False,
-    raw_lfp=False,
-    mic=True,
-    filtered_ap=False,
-    filtered_lfp=False,
+    ap_raw=False,
+    ap_filtered=False,
+    lfp_raw=False,
+    lfp_filtered=False,
+    mic_spectrogram=True,
+    mic_raw=False,
     sorting_panel=False,
-    lf_filt_range=None
-):  
-    
+    lf_filt_range=None,
+    load_sync_channel=False,
+):
     def slice_rec(rec, time_range=None, depth_range=None):
         if time_range is not None:
             rec = slice_rec_time(rec, time_range)
-        
+
         if depth_range is not None:
             rec = slice_rec_depth(rec, depth_range)
 
         return rec
 
-    #Unpacking
+    # Unpacking
     implant_name, rec_name, time_range, depth_range, _, time_stamp = key_tuple
 
     spikeglx_folder = get_spikeglx_folder(implant_name, rec_name)
@@ -85,10 +86,12 @@ def open_ephyviewer_mainwindow(
     win = ephyviewer.MainViewer(debug=True, show_auto_scale=True)
 
     ### Sources
-    if raw_ap:
+    if ap_raw:
         recording_spike = si.read_spikeglx(
-            spikeglx_folder, stream_id="imec0.ap"
+            spikeglx_folder, stream_id="imec0.ap", load_sync_channel=load_sync_channel
         )  # ap file
+        print(spikeglx_folder)
+        print(recording_spike)
 
         recording_spike = slice_rec(recording_spike, time_range, depth_range)
 
@@ -99,7 +102,7 @@ def open_ephyviewer_mainwindow(
         sig_source0._t_start = sig_source0._t_start + synchro["b"]
 
         view0 = ephyviewer.TraceViewer(
-            source=sig_source0, name="ap"
+            source=sig_source0, name="ap_raw"
         )  # Trace of ap signal
 
         view0.params["scale_mode"] = "same_for_all"
@@ -112,7 +115,25 @@ def open_ephyviewer_mainwindow(
 
         win.add_view(view0)
 
-    if filtered_ap:
+        sig_source10 = ephyviewer.SpikeInterfaceRecordingSource(
+            recording=recording_spike
+        )
+
+        sig_source10 = ephyviewer.TraceViewer(
+            source=sig_source10, name="ap_non_aligned"
+        )  # Trace of ap signal
+
+        sig_source10.params["scale_mode"] = "same_for_all"
+        for c in range(recording_spike.get_num_channels()):
+            if c % 50 == 0:
+                visible = True
+            else:
+                visible = False
+            sig_source10.by_channel_params[f"ch{c}", "visible"] = visible
+
+        win.add_view(sig_source10)
+
+    if ap_filtered:
         print(working_dir)
         recording_spike_filt = si.load_extractor(
             working_dir / "preprocess_recording"
@@ -137,9 +158,11 @@ def open_ephyviewer_mainwindow(
 
         win.add_view(view1)
 
-    if raw_lfp:
-        recording_lf = si.read_spikeglx(spikeglx_folder, stream_id="imec0.lf")  # lfp
-        
+    if lfp_raw:
+        recording_lf = si.read_spikeglx(
+            spikeglx_folder, stream_id="imec0.lf", load_sync_channel=load_sync_channel
+        )  # lfp
+
         recording_lf = slice_rec(recording_lf, time_range, depth_range)
 
         sig_source2 = ephyviewer.SpikeInterfaceRecordingSource(
@@ -167,48 +190,69 @@ def open_ephyviewer_mainwindow(
                 visible = False
             view2.by_channel_params[f"ch{c}", "visible"] = visible
 
-    if mic:
+    if lfp_filtered:
+        recording_lf_filt = si.read_spikeglx(
+            spikeglx_folder, stream_id="imec0.lf", load_sync_channel=load_sync_channel
+        )  # lfp
+
+        recording_lf_filt = slice_rec(recording_lf_filt, time_range, depth_range)
+
+        recording_f = si.bandpass_filter(
+            recording_lf_filt, lf_filt_range[0], lf_filt_range[1]
+        )
+        sig_source3 = ephyviewer.SpikeInterfaceRecordingSource(
+            recording=recording_f
+        )  # filtered LFP trace
+        sig_source3.sample_rate = sig_source3.sample_rate / synchro["a"]
+        sig_source3._t_start = sig_source3._t_start + synchro["b"]
+        view3 = ephyviewer.TraceViewer(
+            source=sig_source3, name="signals filtered lfp"
+        )  # Trace of LFP filtered
+        win.add_view(view3)
+
+    if mic_spectrogram:
         recording_nidq = si.read_spikeglx(
             spikeglx_folder, stream_id="nidq"
         )  # microphone
 
         recording_nidq = slice_rec(recording_nidq, time_range, None)
 
-        sig_source3 = ephyviewer.SpikeInterfaceRecordingSource(
+        sig_source4 = ephyviewer.SpikeInterfaceRecordingSource(
             recording=recording_nidq
         )  # microphone
-        view3 = ephyviewer.SpectrogramViewer(
-            source=sig_source3, name="signals nidq"
+        view4 = ephyviewer.SpectrogramViewer(
+            source=sig_source4, name="signals nidq"
         )  # Trace of Microphone
-        win.add_view(view3)
+        win.add_view(view4)
 
-        view3.params["colormap"] = "inferno"
-        view3.params.child("scalogram")["overlapratio"] = 0.2
-        view3.params.child("scalogram")["binsize"] = 0.02
+        view4.params["colormap"] = "inferno"
+        view4.params.child("scalogram")["overlapratio"] = 0.2
+        view4.params.child("scalogram")["binsize"] = 0.02
 
         for c in range(recording_nidq.get_num_channels()):
             if c == 0:
-                view3.by_channel_params[f"ch{c}", "visible"] = True
-                view3.by_channel_params[f"ch{c}", "clim_min"] = -30
-                view3.by_channel_params[f"ch{c}", "clim_max"] = 60
+                view4.by_channel_params[f"ch{c}", "visible"] = True
+                view4.by_channel_params[f"ch{c}", "clim_min"] = -30
+                view4.by_channel_params[f"ch{c}", "clim_max"] = 60
             else:
-                view3.by_channel_params[f"ch{c}", "visible"] = False
+                view4.by_channel_params[f"ch{c}", "visible"] = False
 
-    if filtered_lfp:
-        recording_lf_filt = si.read_spikeglx(spikeglx_folder, stream_id="imec0.lf")  # lfp
-        
-        recording_lf_filt = slice_rec(recording_lf_filt, time_range, depth_range)
-        
-        recording_f = si.bandpass_filter(recording_lf_filt, lf_filt_range[0], lf_filt_range[1])
-        sig_source4 = ephyviewer.SpikeInterfaceRecordingSource(
-            recording=recording_f
-        )  # filtered LFP trace
-        sig_source4.sample_rate = sig_source4.sample_rate / synchro["a"]
-        sig_source4._t_start = sig_source4._t_start + synchro["b"]
-        view4 = ephyviewer.TraceViewer(
-            source=sig_source4, name="signals filtered lfp"
-        )  # Trace of LFP filtered
-        win.add_view(view4)
+    if mic_raw:
+        recording_nidq = si.read_spikeglx(
+            spikeglx_folder, stream_id="nidq"
+        )  # microphone
+
+        recording_nidq = slice_rec(recording_nidq, time_range, None)
+
+        sig_source5 = ephyviewer.SpikeInterfaceRecordingSource(
+            recording=recording_nidq
+        )  # microphone
+
+        view5 = ephyviewer.TraceViewer(
+            source=sig_source5, name="mic_raw"
+        )  # Trace of mic signal
+
+        win.add_view(view5)
 
     if sorting_panel:
         sorting = si.read_npz_sorting(sorting_folder / "sorting_cached.npz")
@@ -220,10 +264,10 @@ def open_ephyviewer_mainwindow(
             all_spikes.append({"time": spike_times, "name": f"Unit#{unit_id}"})
         spike_source = ephyviewer.InMemorySpikeSource(all_spikes)
 
-        view4 = ephyviewer.SpikeTrainViewer(
+        view6 = ephyviewer.SpikeTrainViewer(
             source=spike_source, name="sorting"
         )  # spiking traces
-        win.add_view(view4)
+        win.add_view(view6)
 
     # Display
     win.show()
@@ -243,7 +287,7 @@ def select_folder_and_open():
         return
 
     params = [
-        {"name": "mic", "type": "bool", "value": True},
+        {"name": "mic_spectrogram", "type": "bool", "value": True},
         {"name": "raw_ap", "type": "bool", "value": False},
         {"name": "filtered_ap", "type": "bool", "value": False},
         {"name": "raw_lfp", "type": "bool", "value": False},
@@ -264,24 +308,27 @@ def select_folder_and_open():
 
 def test_open_data():
     key_tuple = (
-        "Anesth_21_01_2023",
-        "Rec_21_01_2023_3_g0",
-        [1500, 2670],
-        [3200, 3840],
+        "Anesth_10_01_2023",
+        "Rec_10_01_2023_3_g0",
+        None,
+        None,
         False,
         "2023-01",
     )
     sorter_name = "kilosort2_5"
+
     open_ephyviewer_mainwindow(
         key_tuple,
         sorter_name,
-        raw_ap=True,
-        raw_lfp=False,
-        mic=True,
-        filtered_ap=True,
-        filtered_lfp=False,
+        ap_raw=True,
+        ap_filtered=False,
+        lfp_raw=False,
+        lfp_filtered=False,
+        mic_spectrogram=True,
+        mic_raw=True,
         sorting_panel=True,
-        lf_filt_range=None
+        lf_filt_range=None,
+        load_sync_channel=True,
     )
 
 

@@ -5,7 +5,7 @@ base_input_folder = Path(
     "/data2/MilesasData/dataset/"
 )
 
-output_path = Path("/data2/MilesasData/dataset/run_02062023_to_erase")
+output_path = Path("/data2/MilesasData/dataset/run_050623")
 
 job_kwargs = {
     "n_jobs": 25,

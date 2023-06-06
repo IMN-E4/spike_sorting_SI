@@ -304,8 +304,8 @@ if __name__ == "__main__":
     file_num = [int(f.stem.split("_")[-1]) for f in files]
     order = np.argsort(file_num)
     files = [files[i] for i in order]
-    # print(files)
-    run_spike_sorting(files[1:])  ## comment or uncomment
+    # print(files) ## comment or uncomment
+    # run_spike_sorting(files[1:])  ## comment or uncomment
 
     ## To count units per spike sorter!
-    # count_total_units_per_sorter() ## comment or uncomment
+    count_total_units_per_sorter() ## comment or uncomment

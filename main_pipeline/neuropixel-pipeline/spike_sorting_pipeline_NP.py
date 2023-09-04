@@ -775,7 +775,7 @@ def run_all(
             implant_name, rec_name, time_range, depth_range, time_stamp
         )
         NAS_sorting_folder = concatenate_clean_sorting_path(
-            implant_name, rec_name, time_range, depth_range, time_stamp, "None"
+            implant_name, rec_name, time_range, depth_range, time_stamp, ""
         )
 
         print(f"Data is coming from {spikeglx_folder}")

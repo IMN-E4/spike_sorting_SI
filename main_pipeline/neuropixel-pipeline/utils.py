@@ -124,7 +124,9 @@ def read_rec(
     rec: spikeinterface object
         time/depth corrected rec
     """
-    assert isinstance(spikeglx_folder, Path), f"spikeglx_folder must be Path not {type(spikeglx_folder)}"
+    assert isinstance(
+        spikeglx_folder, Path
+    ), f"spikeglx_folder must be Path not {type(spikeglx_folder)}"
     assert isinstance(stream_id, str), f"stream_id must be str not {type(stream_id)}"
     assert isinstance(
         time_range, (tuple, list, type(None))
@@ -132,7 +134,9 @@ def read_rec(
     assert isinstance(
         depth_range, (tuple, list, type(None))
     ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
-    assert isinstance(load_sync_channel, bool), f"load_sync_channel must be boolean not {type(load_sync_channel)}"
+    assert isinstance(
+        load_sync_channel, bool
+    ), f"load_sync_channel must be boolean not {type(load_sync_channel)}"
 
     rec = si.read_spikeglx(
         spikeglx_folder, stream_id=stream_id, load_sync_channel=load_sync_channel
@@ -196,7 +200,9 @@ def correct_drift(rec, working_folder):
     recording_corrected: spikeinterface object
         drift-corrected rec
     """
-    assert isinstance(working_folder, Path), f"working_folder must be Path not {type(working_folder)}"
+    assert isinstance(
+        working_folder, Path
+    ), f"working_folder must be Path not {type(working_folder)}"
     assert isinstance(
         rec, si.SpikeGLXRecordingExtractor
     ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor not {type(rec)}"

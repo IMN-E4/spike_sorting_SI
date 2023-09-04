@@ -92,16 +92,22 @@ def get_preprocess_recording(
         preprocessed recording
 
     """
-    assert isinstance(spikeglx_folder, Path), "spikeglx_folder must be type Path"
-    assert isinstance(working_folder, Path), "working_folder must be Path"
+    assert isinstance(
+        spikeglx_folder, Path
+    ), f"spikeglx_folder must be type Path not {type(spikeglx_folder)}"
+    assert isinstance(
+        working_folder, Path
+    ), f"working_folder must be Path not {type(working_folder)}"
     assert isinstance(
         time_range, (tuple, list, type(None))
-    ), "time_range must be type tuple, list or None"
+    ), f"time_range must be type tuple, list or None not {type(time_range)}"
     assert isinstance(
         depth_range, (tuple, list, type(None))
-    ), "depth_range must be type tuple, list or None"
-    assert isinstance(stream_id, str), "stream_id must be str"
-    assert isinstance(load_sync_channel, bool), "stream_id must be boolean"
+    ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
+    assert isinstance(stream_id, str), f"stream_id must be str not {type(stream_id)}"
+    assert isinstance(
+        load_sync_channel, bool
+    ), f"load_sync_channel must be str not {type(load_sync_channel)}"
 
     rec = read_rec(
         spikeglx_folder, stream_id, time_range, depth_range, load_sync_channel
@@ -155,8 +161,10 @@ def run_pre_sorting_checks(rec_preprocess, working_folder):
     """
     assert isinstance(
         rec_preprocess, si.BinaryFolderRecording
-    ), "rec_preprocess must be type spikeinterface BinaryFolderRecording"
-    assert isinstance(working_folder, Path), "working_folder must be Path"
+    ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording not {type(rec_preprocess)}"
+    assert isinstance(
+        working_folder, Path
+    ), f"working_folder must be Path not {type(working_folder)}"
 
     print("################ Starting presorting checks! ################")
 
@@ -260,9 +268,13 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
     """
     assert isinstance(
         rec_preprocess, si.BinaryFolderRecording
-    ), "rec_preprocess must be type spikeinterface BinaryFolderRecording"
-    assert isinstance(working_folder, Path), "working_folder must be Path"
-    assert isinstance(drift_correction, bool), "drift_correction must be boolean"
+    ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording not {type(rec_preprocess)}"
+    assert isinstance(
+        working_folder, Path
+    ), f"working_folder must be Path not {type(working_folder)}"
+    assert isinstance(
+        drift_correction, bool
+    ), f"drift_correction must be boolean not {type(drift_correction)}"
 
     if drift_correction:
         rec_preprocess = correct_drift(rec_preprocess, working_folder)
@@ -339,10 +351,16 @@ def run_postprocessing_sorting(
     """
     assert isinstance(
         rec_preprocess, si.BinaryFolderRecording
-    ), "rec_preprocess must be type spikeinterface BinaryFolderRecording"
-    assert isinstance(working_folder, Path), "working_folder must be Path"
-    assert isinstance(sorting_clean_folder, Path), "sorting_clean_folder must be Path"
-    assert isinstance(drift_correction, bool), "drift_correction must be boolean"
+    ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording not {type(rec_preprocess)}"
+    assert isinstance(
+        working_folder, Path
+    ), f"working_folder must be Path not {type(working_folder)}"
+    assert isinstance(
+        sorting_clean_folder, Path
+    ), f"sorting_clean_folder must be Path not {type(sorting_clean_folder)}"
+    assert isinstance(
+        drift_correction, bool
+    ), f"drift_correction must be boolean not {type(drift_correction)}"
 
     def merging_unit(potential_pair_merges, sorting):
         graph = nx.Graph()
@@ -517,11 +535,15 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
     Saves synchro_imecap_corr_on_nidq.json in working_folder
 
     """
-    assert isinstance(working_folder, Path), "working_folder must be Path"
-    assert isinstance(spikeglx_folder, Path), "spikeglx_folder must be Path"
+    assert isinstance(
+        working_folder, Path
+    ), f"working_folder must be Path not {type(working_folder)}"
+    assert isinstance(
+        spikeglx_folder, Path
+    ), f"spikeglx_folder must be Path not {type(spikeglx_folder)}"
     assert isinstance(
         time_range, (tuple, list, type(None))
-    ), "time_range must be type tuple, list or None"
+    ), f"time_range must be type tuple, list or None not {type(time_range)}"
 
     # Get recordings with fixed depth
     rec_nidq = read_rec(
@@ -654,8 +676,12 @@ def compare_sorter_cleaned(working_folder, sorting_clean_folder):
     Agreement matrix.
 
     """
-    assert isinstance(working_folder, Path), "working_folder must be Path"
-    assert isinstance(sorting_clean_folder, Path), "sorting_clean_folder must be Path"
+    assert isinstance(
+        working_folder, Path
+    ), f"working_folder must be Path not {type(working_folder)}"
+    assert isinstance(
+        sorting_clean_folder, Path
+    ), f"sorting_clean_folder must be Path not {type(sorting_clean_folder)}"
 
     sortings = []
     for sorter_name, _ in sorters.items():
@@ -723,12 +749,18 @@ def run_all(
 
 
     """
-    assert isinstance(pre_check, bool), "pre_check must be boolean"
-    assert isinstance(sorting, bool), "sorting must be boolean"
-    assert isinstance(postproc, bool), "postproc must be boolean"
-    assert isinstance(compare_sorters, bool), "compare_sorters must be boolean"
-    assert isinstance(compute_alignment, bool), "compute_alignment must be boolean"
-    assert isinstance(time_stamp, str), "time_stamp must be str"
+    assert isinstance(
+        pre_check, bool
+    ), f"pre_check must be boolean not {type(pre_check)}"
+    assert isinstance(sorting, bool), f"sorting must be boolean not {type(sorting)}"
+    assert isinstance(postproc, bool), f"postproc must be boolean not {type(postproc)}"
+    assert isinstance(
+        compare_sorters, bool
+    ), f"compare_sorters must be boolean not {type(compare_sorters)}"
+    assert isinstance(
+        compute_alignment, bool
+    ), f"compute_alignment must be boolean not {type(compute_alignment)}"
+    assert isinstance(time_stamp, str), f"time_stamp must be str not {type(time_stamp)}"
 
     # Starts loop over recordings in recording list
     for (

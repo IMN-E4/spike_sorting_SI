@@ -1,3 +1,26 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""Figures functions
+
+"""
+
+__author__ = "Eduarda Centeno & Samuel Garcia"
+__contact__ = "teame4.leblois@gmail.com"
+__date__ = "2023/05/1"
+__status__ = "Production"
+
+
+####################
+# Review History   #
+####################
+
+
+####################
+# Libraries        #
+####################
+
+# Third-party imports
 from probeinterface.plotting import plot_probe
 import spikeinterface.full as si
 import matplotlib.pyplot as plt
@@ -8,7 +31,7 @@ import numpy as np
 def plot_drift(peaks, rec_preprocess, peak_locations, name, figure_folder, 
               motion=None, temporal_bins=None, spatial_bins=None, alpha=0.02):
     fig, ax = plt.subplots()
-    x = peaks['sample_ind'] / rec_preprocess.get_sampling_frequency()
+    x = peaks['sample_index'] / rec_preprocess.get_sampling_frequency()
     y = peak_locations['y']
     ax.scatter(x, y, s=1, color='k', alpha=alpha)
     ax.set_title(name)

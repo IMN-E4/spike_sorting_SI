@@ -8,9 +8,7 @@ Utils for spike sorting pipeline.
 __author__ = "Eduarda Centeno & Samuel Garcia"
 __contact__ = "teame4.leblois@gmail.com"
 __date__ = "2022/06/1"
-__status__ = (
-    "Production"
-)
+__status__ = "Production"
 
 
 ####################
@@ -23,6 +21,7 @@ __status__ = (
 ####################
 
 # Standard imports
+from pathlib import Path
 
 # Third party imports
 import spikeinterface.full as si
@@ -37,10 +36,10 @@ def slice_rec_time(rec, time_range):
 
     Parameters
     ----------
-    rec: spikeinterface object
+    rec: si.SpikeGLXRecordingExtractor
         recording to apply preprocessing on
 
-    time_range: tuple
+    time_range: None | list | tuple
         beginning and end time to slice recording
 
     Returns
@@ -48,6 +47,12 @@ def slice_rec_time(rec, time_range):
     sliced_rec: spikeinterface object
         time-sliced recording
     """
+    assert isinstance(
+        rec, si.SpikeGLXRecordingExtractor
+    ), f"rec must be type spikeinterface BinaryFolderRecording not {type(rec)}"
+    assert isinstance(
+        time_range, (tuple, list, type(None))
+    ), f"time_range must be type tuple, list or None not {type(time_range)}"
 
     fs = rec.get_sampling_frequency()
 
@@ -64,10 +69,10 @@ def slice_rec_depth(rec, depth_range):
 
     Parameters
     ----------
-    rec: spikeinterface object
+    rec: spikeinterface SpikeGLXRecordingExtractor
         recording to apply preprocessing on
 
-    depth_range: tuple
+    depth_range: None | list | tuple
         beginning and end depth to slice recording
 
     Returns
@@ -75,6 +80,12 @@ def slice_rec_depth(rec, depth_range):
     sliced_rec: spikeinterface object
         depth-sliced recording
     """
+    assert isinstance(
+        rec, si.SpikeGLXRecordingExtractor
+    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor not {type(rec)}"
+    assert isinstance(
+        depth_range, (tuple, list, type(None))
+    ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
 
     # Channel Slicing
     print(f"Depth slicing between {depth_range[0]} and {depth_range[1]}")
@@ -92,16 +103,16 @@ def read_rec(
 
     Parameters
     ----------
-    spikeglx_folder: path
+    spikeglx_folder: Path
         path to data
 
     stream_id: str
         data stream id
 
-    time_range: tuple
+    time_range: None | list | tuple
         beginning and end time to slice recording
 
-    depth_range: tuple
+    depth_range: None | list | tuple
         beginning and end depth to slice recording
 
     load_sync_channel: bool
@@ -113,6 +124,16 @@ def read_rec(
     rec: spikeinterface object
         time/depth corrected rec
     """
+    assert isinstance(spikeglx_folder, Path), f"spikeglx_folder must be Path not {type(spikeglx_folder)}"
+    assert isinstance(stream_id, str), f"stream_id must be str not {type(stream_id)}"
+    assert isinstance(
+        time_range, (tuple, list, type(None))
+    ), f"time_range must be type tuple, list or None not {type(time_range)}"
+    assert isinstance(
+        depth_range, (tuple, list, type(None))
+    ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
+    assert isinstance(load_sync_channel, bool), f"load_sync_channel must be boolean not {type(load_sync_channel)}"
+
     rec = si.read_spikeglx(
         spikeglx_folder, stream_id=stream_id, load_sync_channel=load_sync_channel
     )
@@ -131,7 +152,7 @@ def apply_preprocess(rec):
 
     Parameters
     ----------
-    rec: spikeinterface object
+    rec: spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording
         recording to apply preprocessing on.
 
     Returns
@@ -139,6 +160,10 @@ def apply_preprocess(rec):
     rec_preproc: spikeinterface object
         preprocessed rec
     """
+    assert isinstance(
+        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording)
+    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
+
     # Bandpass filter
     rec = si.bandpass_filter(
         rec,
@@ -160,18 +185,22 @@ def correct_drift(rec, working_folder):
 
     Parameters
     ----------
-    rec: spikeinterface object
+    rec: spikeinterface BinaryFolderRecording
         recording to apply preprocessing on.
 
-    working_folder: path
+    working_folder: Path
         working folder
-
 
     Returns
     -------
     recording_corrected: spikeinterface object
         drift-corrected rec
     """
+    assert isinstance(working_folder, Path), f"working_folder must be Path not {type(working_folder)}"
+    assert isinstance(
+        rec, si.SpikeGLXRecordingExtractor
+    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor not {type(rec)}"
+
     motion_file0 = working_folder / "motion.npy"
     motion_file1 = working_folder / "motion_temporal_bins.npy"
     motion_file2 = working_folder / "motion_spatial_bins.npy"

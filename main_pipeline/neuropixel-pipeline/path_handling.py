@@ -46,8 +46,8 @@ def concatenate_spikeglx_folder_path(implant_name, rec_name):
     spikeglx_folder: Path
         spikeglx folder
     """
-    assert isinstance(implant_name, str), "implant_name must be type str"
-    assert isinstance(rec_name, str), "rec_name must be type str"
+    assert isinstance(implant_name, str), f"implant_name must be type str not {type(implant_name)}"
+    assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
 
     spikeglx_folder = base_input_folder / implant_name / "Recordings" / rec_name
 
@@ -85,11 +85,11 @@ def concatenate_working_folder_path(
     working_folder: Path
         working folder
     """
-    assert isinstance(implant_name, str), "implant_name must be type str"
-    assert isinstance(rec_name, str), "rec_name must be type str"
-    assert isinstance(time_range, (tuple, list, type(None))), "time_range must be type tuple, list or None"
-    assert isinstance(depth_range, (tuple, list, type(None))), "depth_range must be type tuple, list or None"
-    assert isinstance(time_stamp, str), "time_stamp must be type str"
+    assert isinstance(implant_name, str), f"implant_name must be type str not {type(implant_name)}"
+    assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
+    assert isinstance(time_range, (tuple, list, type(None))), f"time_range must be type tuple, list or None not {type(time_range)}"
+    assert isinstance(depth_range, (tuple, list, type(None))), f"depth_range must be type tuple, list or None not {type(depth_range)}"
+    assert isinstance(time_stamp, str), f"time_stamp must be type str not {type(time_stamp)}"
 
     if time_stamp == "default":
         time_stamp = datetime.now().strftime("%Y-%m")
@@ -153,12 +153,12 @@ def concatenate_clean_sorting_path(
         path for saving clean sorting
     """
 
-    assert isinstance(implant_name, str), "implant_name must be type str"
-    assert isinstance(rec_name, str), "rec_name must be type str"
-    assert isinstance(time_range, (tuple, list, type(None))), "time_range must be type tuple, list or None"
-    assert isinstance(depth_range, (tuple, list, type(None))), "depth_range must be type tuple, list or None"
-    assert isinstance(time_stamp, str), "time_stamp must be type str"
-    assert isinstance(sorter_name, str), "sorter_name must be type str"
+    assert isinstance(implant_name, str), f"implant_name must be type str not {type(implant_name)}"
+    assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
+    assert isinstance(time_range, (tuple, list, type(None))), f"time_range must be type tuple, list or None not {type(time_range)}"
+    assert isinstance(depth_range, (tuple, list, type(None))), f"depth_range must be type tuple, list or None not {type(depth_range)}"
+    assert isinstance(time_stamp, str), f"time_stamp must be type str not {type(time_stamp)}"
+    assert isinstance(sorter_name, str), f"sorter_name must be type str not {type(sorter_name)}"
 
     if time_stamp == "default":
         time_stamp = datetime.now().strftime("%Y-%m")
@@ -214,10 +214,10 @@ def concatenate_synchro_file_path(implant_name, rec_name, time_range, time_stamp
     synchro_file: Path
         path synchronization json
     """
-    assert isinstance(implant_name, str), "implant_name must be type str"
-    assert isinstance(rec_name, str), "rec_name must be type str"
-    assert isinstance(time_range, (tuple, list, type(None))), "time_range must be type tuple, list or None"
-    assert isinstance(time_stamp, str), "time_stamp must be type str"
+    assert isinstance(implant_name, str), f"implant_name must be type str not {type(implant_name)}"
+    assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
+    assert isinstance(time_range, (tuple, list, type(None))), f"time_range must be type tuple, list or None not {type(time_range)}"
+    assert isinstance(time_stamp, str), f"time_stamp must be type str not {type(time_stamp)}"
 
     if time_stamp == "default":
         time_stamp = datetime.now().strftime("%Y-%m")

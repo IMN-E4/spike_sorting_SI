@@ -8,9 +8,12 @@ from pathlib import Path
 ####################
 # Base paths       #
 ####################
-base_input_folder = Path("/data2/Anindita/Openephys/")
+# base_input_folder = Path("/data2/Anindita/Openephys/")
+base_input_folder = Path("/home/samuel/DataSpikeSorting/eduarda/Cambridge_Recordings/")
 
-base_sorting_cache_folder = Path( "/data2/Anindita/Openephys_Sortings")
+# base_sorting_cache_folder = Path( "/data2/Anindita/Openephys_Sortings")
+base_sorting_cache_folder = base_input_folder.parent / "Cambridge_Sortings"
+
 
 #################
 # Probe params  #
@@ -31,11 +34,25 @@ job_kwargs = {
 # Preprocessing params  #
 #########################
 preprocessing_params = {
-    "lowpass": 6000,
-    "highpass": 300,
-    "local_radius": (50, 100),
-    "reference": "local",
+    "order_by_depth": True,
+    "bandpass_filter": {
+        "freq_min": 300.,
+        "freq_max": 6000.,
+    },
+    "common_reference":{
+        "local_radius": None,
+        "reference": "global",
+    },
+    "bad_channels": {
+                    "method": "coherence+psd",
+                    "chunk_duration_s": .5,
+                    "num_random_chunks": 100,
+                    # this step depend on the seed!!!!!!!
+                    # "seed": None
+    }
 }
+
+
 
 ###############################
 # Presorting check params     #
@@ -107,7 +124,7 @@ peak_detection_params = {
     "method": "locally_exclusive",
     "peak_sign": peak_sign,
     "detect_threshold": 5.0,
-    "local_radius_um": 150,
+    "radius_um": 150,
 }
 
 unit_location_params = {
@@ -126,7 +143,7 @@ peak_location_params = {
     "ms_before": 1.0,
     "ms_after": 1.0,
     "method": "monopolar_triangulation",
-    "local_radius_um": 50.0,
+    "radius_um": 50.0,
     "max_distance_um": 100,
     "optimizer": "minimize_with_log_penality",
 }
@@ -169,8 +186,8 @@ tridesclous_params = {
     "common_ref_removal": False,
     "nested_params": {
         "chunksize": 30000,
-        "preprocessor": {"engine": "opencl"},
-        # 'preprocessor' : {'engine': 'numpy'},
+        # "preprocessor": {"engine": "opencl"},
+        'preprocessor' : {'engine': 'numpy'},
         "peak_detector": {"adjacency_radius_um": 100},
         "clean_peaks": {"alien_value_threshold": 100.0},
         "peak_sampler": {
@@ -198,9 +215,9 @@ yass_params = {
 }
 
 sorters = {
-    # "tridesclous": tridesclous_params_docker,
+    "tridesclous": tridesclous_params,
     # 'kilosort2' : kilosort2_params,
-    "kilosort2_5": kilosort2_5_params
+    # "kilosort2_5": kilosort2_5_params
     # 'experimental_sorter1': dict(delete_existing=True),
     # 'spykingcircus2' : spykingcircus2_params,
     # "yass" : yass_params

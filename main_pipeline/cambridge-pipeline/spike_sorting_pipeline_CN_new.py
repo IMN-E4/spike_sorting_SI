@@ -91,17 +91,19 @@ def get_preprocess_recording(
         depth_range, (tuple, list, type(None))
     ), "depth_range must be type tuple, list or None"
 
-    rec = read_rec(
-        openephys_folder,
-        time_range,
-        depth_range,
-    )
+
 
     # Preprocessing
     preprocess_folder = working_folder / "preprocess_recording"
     if preprocess_folder.exists():
         print("Already preprocessed")
         rec_preprocess = si.load_extractor(preprocess_folder)
+        # This should be  unecessary!!!
+        # rec_preprocess.annotate(is_filtered=True)
+        print('ici')
+        print(rec_preprocess)
+        print(rec_preprocess.is_filtered())
+
 
     elif (working_folder / "preprocess.json").exists():
         rec_preprocess = si.load_extractor(working_folder / "preprocess.json")
@@ -110,22 +112,29 @@ def get_preprocess_recording(
         )
     else:
         print("Run/save preprocessing")
-        rec_preprocess = apply_preprocess(rec)
+        rec = read_rec(
+            openephys_folder,
+            time_range,
+            depth_range,
+        )
+        # attach probe
+        with_probe_rec = add_probe_to_rec(rec)
+        print(with_probe_rec)
+                
+        rec_preprocess = apply_preprocess(with_probe_rec)
         rec_preprocess.dump_to_json(working_folder / "preprocess.json")
         rec_preprocess = rec_preprocess.save(
             format="binary", folder=preprocess_folder, **job_kwargs
         )
     
-    # attach probe
-    with_probe_rec = add_probe_to_rec(rec_preprocess)
 
-    print(with_probe_rec)
+    print(rec_preprocess)
 
     # probe_group = pi.ProbeGroup()
     # probe_group.add_probe(rec_preprocess.get_probe())
     # write_prb(working_folder / "arch.prb", probe_group)  # for lussac
 
-    return with_probe_rec
+    return rec_preprocess
 
 
 def run_pre_sorting_checks(rec_preprocess, working_folder):
@@ -133,7 +142,7 @@ def run_pre_sorting_checks(rec_preprocess, working_folder):
 
     Parameters
     ----------
-    rec_preprocess: spikeinterface BinaryFolderRecording
+    rec_preprocess: spikeinterface BinaryFolderRecording or si.ChannelSliceRecording
         recording object
 
     working_folder: path
@@ -146,8 +155,8 @@ def run_pre_sorting_checks(rec_preprocess, working_folder):
 
     """
     assert isinstance(
-        rec_preprocess, si.BinaryFolderRecording
-    ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording not {type(rec_preprocess)}"
+        rec_preprocess, (si.BinaryFolderRecording, si.ChannelSliceRecording)
+    ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording or si.ChannelSliceRecording not {type(rec_preprocess)}"
     assert isinstance(
         working_folder, Path
     ), f"working_folder must be Path not {type(working_folder)}"
@@ -238,7 +247,7 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
 
     Parameters
     ----------
-    rec_preprocess: spikeinterface obj
+    rec_preprocess: si.BinaryFolderRecording or si.ChannelSliceRecording
         recording object
 
     working_folder: path
@@ -252,9 +261,9 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
     This function will result in sorting and waveform folders.
 
     """
-    assert isinstance(
-        rec_preprocess, si.BinaryFolderRecording
-    ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording not {type(rec_preprocess)}"
+    # assert isinstance(
+    #     rec_preprocess, (si.BinaryFolderRecording, si.ChannelSliceRecording)
+    # ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording or si.ChannelSliceRecording not {type(rec_preprocess)}"
     assert isinstance(
         working_folder, Path
     ), f"working_folder must be Path not {type(working_folder)}"
@@ -283,13 +292,18 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
             )
             print(sorting)
             sorting = sorting.save(
-                format="npz", folder=working_folder / f"sorting_{sorter_name}"
+                format="numpy_folder", folder=working_folder / f"sorting_{sorter_name}"
             )
 
     # Extract waveforms and compute some metrics
     for sorter_name, params in sorters.items():
         sorting_folder = working_folder / f"sorting_{sorter_name}"
         sorting = si.load_extractor(sorting_folder)
+
+        print('la')
+        print(rec_preprocess)
+        print(rec_preprocess.is_filtered())
+
 
         wf_folder = working_folder / f"waveforms_{sorter_name}"
         we = si.extract_waveforms(
@@ -629,12 +643,10 @@ def run_all(
             rec_preprocess = get_preprocess_recording(
                 openephys_folder, cache_working_folder, time_range, depth_range
             )
+            print('yepyep')
+            print(rec_preprocess)
+            print(rec_preprocess.is_filtered())
 
-             # Add probe here
-            probe = get_probe('cambridgeneurotech', probe_type)
-            probe.wiring_to_device(amp_type)
-            rec = rec.set_probe(probe, group_mode='by_shank')
-            print(rec.get_property('group'))
 
             if pre_check:
                 # Run pre-sorting checks

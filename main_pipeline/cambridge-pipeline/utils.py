@@ -51,8 +51,8 @@ def correct_drift(rec, working_folder):
     """
     assert isinstance(working_folder, Path), "working_folder must be Path"
     assert isinstance(
-        rec, si.SpikeGLXRecordingExtractor
-    ), "rec must be type spikeinterface SpikeGLXRecordingExtractor"
+        rec, si.OpenEphysBinaryRecordingExtractor
+    ), "rec must be type spikeinterface OpenEphysBinaryRecordingExtractor"
 
     motion_file0 = working_folder / "motion.npy"
     motion_file1 = working_folder / "motion_temporal_bins.npy"
@@ -75,7 +75,7 @@ def add_probe_to_rec(rec):
 
     Parameters
     ----------
-    rec: spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording
+    rec: spikeinterface OpenEphysBinaryRecordingExtractor or FrameSliceRecording
         recording to apply preprocessing on.
 
     Returns
@@ -84,8 +84,8 @@ def add_probe_to_rec(rec):
         rec with probe attached
     """
     assert isinstance(
-        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording)
-    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
+        rec, (si.OpenEphysBinaryRecordingExtractor, si.FrameSliceRecording)
+    ), f"rec must be type spikeinterface OpenEphysBinaryRecordingExtractor or FrameSliceRecording not {type(rec)}"
 
 
     # Add probe here
@@ -101,7 +101,7 @@ def apply_preprocess(rec):
 
     Parameters
     ----------
-    rec: spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording
+    rec: spikeinterface OpenEphysBinaryRecordingExtractor or FrameSliceRecording or si.ChannelSliceRecording
         recording to apply preprocessing on.
 
     Returns
@@ -110,22 +110,24 @@ def apply_preprocess(rec):
         preprocessed rec
     """
     assert isinstance(
-        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording)
-    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
+        rec, (si.OpenEphysBinaryRecordingExtractor, si.FrameSliceRecording, si.ChannelSliceRecording)
+    ), f"rec must be type spikeinterface OpenEphysBinaryRecordingExtractor or FrameSliceRecording or si.ChannelSliceRecording not {type(rec)}"
+
+    print(rec.get_probe())
+    if preprocessing_params["order_by_depth"]:
+        rec = si.depth_order(rec)
 
     # Bandpass filter
-    rec = si.bandpass_filter(
-        rec,
-        freq_min=preprocessing_params["highpass"],
-        freq_max=preprocessing_params["lowpass"],
-    )
+    rec_filter = si.bandpass_filter(rec, **preprocessing_params["bandpass_filter"])
+    
+    bad_channel_ids, channel_labels = si.detect_bad_channels(rec_filter,  **preprocessing_params["bad_channels"])
+
+    rec_preproc = rec_filter.remove_channels(bad_channel_ids)
 
     # Common referencing
-    rec_preproc = si.common_reference(
-        rec,
-        reference=preprocessing_params["reference"],
-        local_radius=preprocessing_params["local_radius"],
-    )
+    rec_preproc = si.common_reference(rec_preproc, **preprocessing_params["common_reference"])
+    # rec_preproc.annotate(is_filtered=True)
+
     return rec_preproc
 
 
@@ -134,7 +136,7 @@ def slice_rec_time(rec, time_range):
 
     Parameters
     ----------
-    rec: si.SpikeGLXRecordingExtractor
+    rec: si.OpenEphysRecordingExtractor
         recording to apply preprocessing on
 
     time_range: None | list | tuple
@@ -146,7 +148,7 @@ def slice_rec_time(rec, time_range):
         time-sliced recording
     """
     assert isinstance(
-        rec, si.SpikeGLXRecordingExtractor
+        rec, si.OpenEphysBinaryRecordingExtractor
     ), f"rec must be type spikeinterface BinaryFolderRecording not {type(rec)}"
     assert isinstance(
         time_range, (tuple, list, type(None))
@@ -167,7 +169,7 @@ def slice_rec_depth(rec, depth_range):
 
     Parameters
     ----------
-    rec: spikeinterface SpikeGLXRecordingExtractor
+    rec: spikeinterface OpenEphysBinaryRecordingExtractor
         recording to apply preprocessing on
 
     depth_range: None | list | tuple
@@ -179,8 +181,8 @@ def slice_rec_depth(rec, depth_range):
         depth-sliced recording
     """
     assert isinstance(
-        rec, si.SpikeGLXRecordingExtractor
-    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor not {type(rec)}"
+        rec, si.OpenEphysBinaryRecordingExtractor
+    ), f"rec must be type spikeinterface OpenEphysBinaryRecordingExtractor not {type(rec)}"
     assert isinstance(
         depth_range, (tuple, list, type(None))
     ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
@@ -221,7 +223,7 @@ def read_rec(openephys_folder, time_range, depth_range):
         depth_range, (tuple, list, type(None))
     ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
 
-    rec = si.openephys(openephys_folder)
+    rec = si.read_openephys(openephys_folder)
 
     if time_range is not None:
         rec = slice_rec_time(rec, time_range)

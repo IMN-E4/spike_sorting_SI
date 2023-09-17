@@ -31,16 +31,18 @@ import spikeinterface.full as si
 import ephyviewer
 
 # Internal imports ### (Put here imports that are related to internal codes from the lab)
+from utils import add_probe_to_rec
 
 
 # Params
 block_index = 0
 bandpass_range = (1,300)
+order_by_depth = True  # probe tip to probe upper part
 
 # Choose sources:
-raw_recording = False
-mic_spectrogram = True
-bandpassed_recording = True
+raw_recording = True
+mic_spectrogram = False
+bandpassed_recording = False
 sorting = False
 
 # Paths
@@ -56,13 +58,16 @@ print(data_folder)
 # print(sorting_folder)
 
 
-# App and viewer objects
+## App and viewer objects
 app = ephyviewer.mkQApp()
 win = ephyviewer.MainViewer(debug=True, show_auto_scale=True)
 
 ### Sources
 if raw_recording:   
     recording = si.read_openephys(data_folder, block_index=block_index) 
+    if order_by_depth:
+        recording = add_probe_to_rec(recording)
+        recording = si.depth_order(recording)
     sig_source0 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording)
     view0 = ephyviewer.TraceViewer(source=sig_source0, name='recording traces')
     win.add_view(view0)
@@ -78,6 +83,9 @@ if mic_spectrogram:
 
 if bandpassed_recording:
     recording = si.read_openephys(data_folder, block_index=block_index)
+    if order_by_depth:
+        recording = add_probe_to_rec(recording)
+        recording = si.depth_order(recording)
     filtered_recording = si.bandpass_filter(recording, bandpass_range[0], bandpass_range[1])
     sig_source2 = ephyviewer.SpikeInterfaceRecordingSource(recording=filtered_recording)
     view2 = ephyviewer.TraceViewer(source=sig_source2, name='signals bandpassed')

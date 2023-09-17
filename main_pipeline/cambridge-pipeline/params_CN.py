@@ -3,6 +3,7 @@
 ####################
 # Standard imports
 from pathlib import Path
+import os
 
 
 ####################
@@ -14,6 +15,7 @@ base_input_folder = Path("/home/samuel/DataSpikeSorting/eduarda/Cambridge_Record
 # base_sorting_cache_folder = Path( "/data2/Anindita/Openephys_Sortings")
 base_sorting_cache_folder = base_input_folder.parent / "Cambridge_Sortings"
 
+params_location = Path(__file__)
 
 #################
 # Probe params  #

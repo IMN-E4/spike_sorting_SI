@@ -515,6 +515,10 @@ def run_postprocessing_sorting(
         df.loc[multi_units, "unit_type"] = "multi"
         df.to_csv(csv_metrics_path, index=True)
 
+        # Save params to cache and NAS
+        propagate_params(params_location, clean_sorting)
+        propagate_params(params_location, report_clean_folder)
+
 
 ########### Sorting comparison ###########
 def compare_sorter_cleaned(working_folder, sorting_clean_folder):

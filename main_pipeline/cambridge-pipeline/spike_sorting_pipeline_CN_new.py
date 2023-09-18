@@ -306,14 +306,16 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
 
 
         wf_folder = working_folder / f"waveforms_{sorter_name}"
-        we = si.extract_waveforms(
-            rec_preprocess,
-            sorting,
-            folder=wf_folder,
-            load_if_exists=True,
-            **waveform_params,
-            **job_kwargs,
-        )
+        if wf_folder.exists():
+            we = si.load_waveforms(wf_folder)
+        else:
+            we = si.extract_waveforms(
+                rec_preprocess,
+                sorting,
+                folder=wf_folder,
+                **waveform_params,
+                **job_kwargs,
+            )
 
         si.compute_spike_amplitudes(
             we, load_if_exists=True, **amplitude_params, **job_kwargs
@@ -401,16 +403,19 @@ def run_postprocessing_sorting(
             continue
 
         wf_temp_query = working_folder / f"waveforms_temp_query_{sorter_name}"
-        temp_query_we = si.extract_waveforms(
-            rec_preprocess,
-            clean_sorting,
-            folder=wf_temp_query,
-            load_if_exists=True,
-            **waveform_params,
-            **job_kwargs,
-        )
-        shutil.rmtree(wf_temp_query)
 
+        if wf_temp_query.exists():
+            temp_query_we = si.load_waveforms(wf_temp_query)
+        else:
+            temp_query_we = si.extract_waveforms(
+                rec_preprocess,
+                clean_sorting,
+                folder=wf_temp_query,
+                load_if_exists=True,
+                **waveform_params,
+                **job_kwargs,
+            )
+        
         # First round of merges (very strict - mostly for single units)
         first_potential_merges = si.get_potential_auto_merge(
             temp_query_we, **first_merge_params
@@ -429,7 +434,7 @@ def run_postprocessing_sorting(
                 **waveform_params,
                 **job_kwargs,
             )
-            shutil.rmtree(wf_temp_merges)
+     
         else:
             we_clean_first = temp_query_we
             print("No units to merge in the first round")
@@ -446,20 +451,29 @@ def run_postprocessing_sorting(
         else:
             print("No units to merge in the second round")
 
-        # Delete tree before recomputing
-        if sorting_clean_folder.exists():
-            print("remove exists clean", sorting_clean_folder)
-            shutil.rmtree(sorting_clean_folder)
+
+        # delete temporary folder for waveforms
+        if wf_temp_merges.exists():
+            shutil.rmtree(wf_temp_merges)
+        if wf_temp_query.exists():
+            shutil.rmtree(wf_temp_query)
+
 
         # Update Wf and create report with clean sorting
         wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
         report_clean_folder = working_folder / f"report_clean_{sorter_name}"
 
-        # Delete any existing folders
+        # Delete any existing folders before saving new one
+        if sorting_clean_folder.exists():
+            print("remove exists clean", sorting_clean_folder)
+            shutil.rmtree(sorting_clean_folder)
         if wf_clean_folder.exists():
             shutil.rmtree(wf_clean_folder)
         if report_clean_folder.exists():
             shutil.rmtree(report_clean_folder)
+
+
+
 
         clean_sorting = clean_sorting.save(folder=sorting_clean_folder)  # To NAS
 
@@ -468,7 +482,6 @@ def run_postprocessing_sorting(
             rec_preprocess,
             clean_sorting,
             folder=wf_clean_folder,
-            load_if_exists=True,
             **waveform_params,
             **job_kwargs,
         )

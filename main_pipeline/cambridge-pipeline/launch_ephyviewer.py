@@ -42,11 +42,13 @@ order_by_depth = True  # probe tip to probe upper part
 # Choose sources:
 raw_recording = True
 mic_spectrogram = False
-bandpassed_recording = False
+bandpassed_recording = True
 sorting = False
 
 # Paths
-base_folder = Path('/nas/Cambridge_Recordings/Test_Data_troubleshoot/')
+# base_folder = Path('/nas/Cambridge_Recordings/Test_Data_troubleshoot/')
+base_folder = Path("/home/samuel/DataSpikeSorting/eduarda/Cambridge_Recordings/Test_Data_troubleshoot/Recordings")
+
 data_folder = base_folder / '2023-08-23_15-56-05/Record Node 101/'
 
 print(data_folder)
@@ -67,10 +69,15 @@ if raw_recording:
     recording = si.read_openephys(data_folder, block_index=block_index) 
     if order_by_depth:
         recording = add_probe_to_rec(recording)
-        recording = si.depth_order(recording)
+        recording = si.depth_order(recording, flip=True)
     sig_source0 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording)
     view0 = ephyviewer.TraceViewer(source=sig_source0, name='recording traces')
+    view0.params['scale_mode'] = 'by_channel'
+    view0.params['display_labels'] = True
+    view0.auto_scale()
     win.add_view(view0)
+
+    
     
 if mic_spectrogram:
     recording = si.read_openephys(data_folder, block_index=block_index)
@@ -85,10 +92,15 @@ if bandpassed_recording:
     recording = si.read_openephys(data_folder, block_index=block_index)
     if order_by_depth:
         recording = add_probe_to_rec(recording)
-        recording = si.depth_order(recording)
+        recording = si.depth_order(recording, flip=True)
     filtered_recording = si.bandpass_filter(recording, bandpass_range[0], bandpass_range[1])
     sig_source2 = ephyviewer.SpikeInterfaceRecordingSource(recording=filtered_recording)
     view2 = ephyviewer.TraceViewer(source=sig_source2, name='signals bandpassed')
+
+    view2.params['scale_mode'] = 'by_channel'
+    view2.params['display_labels'] = True
+    view2.auto_scale()
+
     win.add_view(view2)
 
     view3 = ephyviewer.TimeFreqViewer(source=sig_source2, name='timefreq sig bandpassed')

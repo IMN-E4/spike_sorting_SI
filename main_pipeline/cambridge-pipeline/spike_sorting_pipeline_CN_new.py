@@ -300,11 +300,6 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
         sorting_folder = working_folder / f"sorting_{sorter_name}"
         sorting = si.load_extractor(sorting_folder)
 
-        print('la')
-        print(rec_preprocess)
-        print(rec_preprocess.is_filtered())
-
-
         wf_folder = working_folder / f"waveforms_{sorter_name}"
         if wf_folder.exists():
             we = si.load_waveforms(wf_folder)
@@ -411,7 +406,6 @@ def run_postprocessing_sorting(
                 rec_preprocess,
                 clean_sorting,
                 folder=wf_temp_query,
-                load_if_exists=True,
                 **waveform_params,
                 **job_kwargs,
             )
@@ -437,6 +431,7 @@ def run_postprocessing_sorting(
      
         else:
             we_clean_first = temp_query_we
+            wf_temp_merges = None
             print("No units to merge in the first round")
 
         # Second round of merges (less strict - mostly for multi units)
@@ -453,7 +448,7 @@ def run_postprocessing_sorting(
 
 
         # delete temporary folder for waveforms
-        if wf_temp_merges.exists():
+        if wf_temp_merges is not None and wf_temp_merges.exists():
             shutil.rmtree(wf_temp_merges)
         if wf_temp_query.exists():
             shutil.rmtree(wf_temp_query)
@@ -529,7 +524,7 @@ def run_postprocessing_sorting(
         df.to_csv(csv_metrics_path, index=True)
 
         # Save params to cache and NAS
-        propagate_params(params_location, clean_sorting)
+        propagate_params(params_location, sorting_clean_folder)
         propagate_params(params_location, report_clean_folder)
 
 

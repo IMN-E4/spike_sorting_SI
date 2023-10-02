@@ -468,8 +468,6 @@ def run_postprocessing_sorting(
             shutil.rmtree(report_clean_folder)
 
 
-
-
         clean_sorting = clean_sorting.save(folder=sorting_clean_folder)  # To NAS
 
         # Compute Wf and report for cleaned sorting

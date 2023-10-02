@@ -9,11 +9,11 @@ import os
 ####################
 # Base paths       #
 ####################
-# base_input_folder = Path("/data2/Anindita/Openephys/")
-base_input_folder = Path("/home/samuel/DataSpikeSorting/eduarda/Cambridge_Recordings/")
+base_input_folder = Path("/nas/Cambridge_Recordings/AreaX_LMAN/")
+# base_input_folder = Path("/home/samuel/DataSpikeSorting/eduarda/Cambridge_Recordings/")
 
-# base_sorting_cache_folder = Path( "/data2/Anindita/Openephys_Sortings")
-base_sorting_cache_folder = base_input_folder.parent / "Cambridge_Sortings"
+base_sorting_cache_folder = Path( "/data2/Cambridge_Neurotech/")
+# base_sorting_cache_folder = base_input_folder.parent / "Test_Data_troubleshoot"
 
 params_location = Path(__file__)
 
@@ -217,9 +217,9 @@ yass_params = {
 }
 
 sorters = {
-    "tridesclous": tridesclous_params,
+    # "tridesclous": tridesclous_params,
     # 'kilosort2' : kilosort2_params,
-    # "kilosort2_5": kilosort2_5_params
+    "kilosort2_5": kilosort2_5_params
     # 'experimental_sorter1': dict(delete_existing=True),
     # 'spykingcircus2' : spykingcircus2_params,
     # "yass" : yass_params

@@ -168,6 +168,9 @@ def apply_preprocess(rec):
         rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording)
     ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
 
+    # Phase shift correction
+    rec = si.phase_shift(rec)
+
     # Bandpass filter
     rec = si.bandpass_filter(
         rec,

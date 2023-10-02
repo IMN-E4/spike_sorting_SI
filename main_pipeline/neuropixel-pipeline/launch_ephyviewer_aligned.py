@@ -34,12 +34,7 @@ from ephyviewer.myqt import QT
 from ephyviewer.tools import ParamDialog
 
 # Internal imports ### (Put here imports that are related to internal codes from the lab)
-from path_handling import (
-    get_sorting_folder,
-    get_spikeglx_folder,
-    get_working_folder,
-    get_synchro_file,
-)
+from path_handling import *
 from utils import *
 
 
@@ -68,16 +63,16 @@ def open_ephyviewer_mainwindow(
     # Unpacking
     implant_name, rec_name, time_range, depth_range, _, time_stamp = key_tuple
 
-    spikeglx_folder = get_spikeglx_folder(implant_name, rec_name)
+    spikeglx_folder = concatenate_spikeglx_folder_path(implant_name, rec_name)
 
-    sorting_folder = get_sorting_folder(
+    sorting_folder = concatenate_clean_sorting_path(
         implant_name, rec_name, time_range, depth_range, time_stamp, sorter_name
     )
-    working_dir = get_working_folder(
+    working_dir = concatenate_working_folder_path(
         implant_name, rec_name, time_range, depth_range, time_stamp
     )
 
-    synchro_file = get_synchro_file(implant_name, rec_name, time_range, time_stamp)
+    synchro_file = concatenate_synchro_file_path(implant_name, rec_name, time_range, time_stamp)
     with open(synchro_file) as f:
         synchro = json.load(f)
 
@@ -308,12 +303,12 @@ def select_folder_and_open():
 
 def test_open_data():
     key_tuple = (
-        "Anesth_10_01_2023",
-        "Rec_10_01_2023_3_g0",
-        None,
-        None,
+        "Imp_30_03_2022",
+        "Rec_31_03_2022_sleep_g0",
+        (3600,3802),
+        (0,3000),
         False,
-        "2023-01",
+        "2023-09",
     )
     sorter_name = "kilosort2_5"
 
@@ -333,5 +328,5 @@ def test_open_data():
 
 
 if __name__ == "__main__":
-    # select_folder_and_open()
-    test_open_data()
+    select_folder_and_open()
+    # test_open_data()

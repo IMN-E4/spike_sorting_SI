@@ -46,7 +46,7 @@ def prepare_recs(
     dtype="uint16",
     n_channels=32,
     dist_contacts=40,
-    gain_val=0.3815, ### where did we get this from?? Ask Marc that is stable.
+    gain_val=0.3815, ### we found this value when opening 221114_Hav_0000_writeheader_signed16bit with read_mcsraw.
 ):
     """Create splitted recs with probe group
 

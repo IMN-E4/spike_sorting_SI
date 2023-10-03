@@ -31,7 +31,16 @@ from utils import add_probe_to_rec
 from params_viz import *
 
 
-def open_my_viewer(brain_area, bird_name, session_name, node, experiment, parent=None):
+def open_my_viewer(brain_area, 
+                   bird_name, 
+                   session_name, 
+                   node, 
+                   experiment,
+                   raw_recording=True,
+                   mic_spectrogram=True,
+                   bandpassed_recording=False,
+                   viz_sorting=False,
+                   parent=None):
     data_folder = (
         base_folder / f"{brain_area}/{bird_name}/Recordings/{session_name}/{node}/"
     )
@@ -58,12 +67,14 @@ def open_my_viewer(brain_area, bird_name, session_name, node, experiment, parent
         win.add_view(view0)
 
     if mic_spectrogram:
-        recording = si.read_openephys(data_folder, bloc=experiment)
+        recording = si.read_openephys(data_folder, block_index=experiment)
         mic = recording.channel_slice(channel_ids=["ADC1"])
         sig_source1 = ephyviewer.SpikeInterfaceRecordingSource(recording=mic)
+        view_raw_mic = ephyviewer.TraceViewer(source=sig_source1, name="raw mic")
 
         view1 = ephyviewer.SpectrogramViewer(source=sig_source1, name="mic spectrogram")
-        win.add_view(view1)
+        win.add_view(view_raw_mic)
+        win.add_view(view1, tabify_with="raw mic")
 
     if bandpassed_recording:
         recording = si.read_openephys(data_folder, block_index=experiment)
@@ -89,7 +100,7 @@ def open_my_viewer(brain_area, bird_name, session_name, node, experiment, parent
         )
         win.add_view(view3)
 
-    if sorting:
+    if viz_sorting:
         dia = QT.QFileDialog(
             fileMode=QT.QFileDialog.Directory, acceptMode=QT.QFileDialog.AcceptOpen
         )
@@ -102,7 +113,7 @@ def open_my_viewer(brain_area, bird_name, session_name, node, experiment, parent
 
         sorting_data = si.load_extractor(sorting_folder)
         all_spikes = []
-        for unit_id in sorting_data.unit_ids:
+        for unit_id in sorting_data.unit_ids[::-1]:
             spike_times_s = sorting_data.get_unit_spike_train(
                 unit_id=unit_id, return_times=True
             )

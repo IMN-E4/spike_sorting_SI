@@ -1,29 +1,65 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+This is the script to open ephyviewer for a list of recordings.
+It will expect to find some csv organized as 'from_sniffer.csv'
+
+Also, it depends on launch_ephyviewer, where we have a hard-coded path structure (expected to be the case in the NAS).
+
+If sorting is selected, user will have to navigate to sorting folder!
+
+Final note: experiment number will be by index (n-1), therefore experiment1 = block0
+
+"""
+
+__author__ = "Eduarda Centeno"
+__contact__ = "teame4.leblois@gmail.com"
+__date__ = "2023/10/1"  ### Date it was created
+__status__ = (
+    "Production"  ### Production = still being developed. Else: Concluded/Finished.
+)
+
+
+###########
+# To do   #
+###########
+## add video!
+
+
+####################
+# Libraries        #
+####################
+
+# Standard imports
+from pathlib import Path
+import glob
+
+# Third party imports
+import pandas as pd
 from ephyviewer.myqt import QT
-
 import pyqtgraph as pg
+from ephyviewer.tools import ParamDialog
 
-from recording_list_CN import get_main_index
-
-
+# Internal imports
+from params_viz import path_to_database
 from launch_ephyviewer import open_my_viewer
 
-# from mainviewer import get_viewer_from_run_key
-# from dataio import dataio, get_main_index
-#~ from states_encoder import get_encoder
+
+################################################################################
+main_index = pd.read_csv(path_to_database)
+
+display_columns = ["rec_name", "node", "experiment"]
 
 
-main_index = get_main_index()
-
-
-display_columns = ['session_name', 'node', 'experiment_number']
-
-
-
-class MainWindow(QT.QMainWindow) :
-    def __init__(self, parent = None,):
+class MainWindow(QT.QMainWindow):
+    def __init__(
+        self,
+        parent=None,
+    ):
         QT.QMainWindow.__init__(self, parent)
 
-        self.resize(800,1000)
+        self.resize(800, 1000)
 
         self.mainWidget = QT.QWidget()
         self.setCentralWidget(self.mainWidget)
@@ -43,22 +79,20 @@ class MainWindow(QT.QMainWindow) :
         self.all_viewers = []
 
     def refresh_tree(self):
-
-
-        group = main_index.groupby('bird_name')
+        group = main_index.groupby("implant_name") # pay attention!
         for bird_name, index in group.groups.items():
-            item  = QT.QTreeWidgetItem([f'{bird_name}'])
+            item = QT.QTreeWidgetItem([f"{bird_name}"])
             self.tree.addTopLevelItem(item)
             for key, row in main_index.loc[index].iterrows():
-                text = u' '.join('{}={}'.format(k, row[k]) for k in display_columns)
+                text = " ".join("{}={}".format(k, row[k]) for k in display_columns)
                 child = QT.QTreeWidgetItem([text])
                 child.key = key
                 item.addChild(child)
 
     def open_menu(self, position):
-
         indexes = self.tree.selectedIndexes()
-        if len(indexes) ==0: return
+        if len(indexes) == 0:
+            return
 
         items = self.tree.selectedItems()
 
@@ -73,37 +107,54 @@ class MainWindow(QT.QMainWindow) :
         if level == 0:
             return
         elif level == 1:
-            act = menu.addAction('Open viewer')
+            act = menu.addAction("Open viewer")
             act.key = items[0].key
             act.triggered.connect(self.open_viewer)
 
         menu.exec_(self.tree.viewport().mapToGlobal(position))
 
-    
-
     def open_viewer(self):
         key = self.sender().key
-        print(key)
-
-        brain_area = main_index.loc[key, 'brain_area']
-        bird_name = main_index.loc[key, 'bird_name']
-        session_name = main_index.loc[key, 'session_name']
-        node = main_index.loc[key, 'node']
-        experiment = main_index.loc[key, 'experiment_number']
+        brain_area = main_index.loc[key, "brain_area"]
+        bird_name = main_index.loc[key, "implant_name"]
+        session_name = main_index.loc[key, "rec_name"]
+        node = main_index.loc[key, "node"]
+        experiment = main_index.loc[key, "experiment"]
 
         print(bird_name, session_name)
 
-        w = open_my_viewer(brain_area, bird_name, session_name, node, experiment, parent=self)
+        params = [
+            {"name": "mic_spectrogram", "type": "bool", "value": True},
+            {"name": "raw_recording", "type": "bool", "value": False},
+            {"name": "bandpassed_recording", "type": "bool", "value": False},
+            {"name": "viz_sorting", "type": "bool", "value": False},
+        ]
+
+        dia = ParamDialog(params, title="Select streams")
+        if dia.exec_():
+            kwargs_streams = dia.get()
+        else:
+            return
+
+        w = open_my_viewer(
+            brain_area,
+            bird_name,
+            session_name,
+            node,
+            experiment,
+            parent=self,
+            **kwargs_streams,
+        )
 
         w.show()
-        w.setWindowTitle(bird_name+' '+session_name)
+        w.setWindowTitle(bird_name + " " + session_name)
         self.all_viewers.append(w)
 
-        for w in [w  for w in self.all_viewers if w.isVisible()]:
+        for w in [w for w in self.all_viewers if w.isVisible()]:
             self.all_viewers.remove(w)
-    
-    
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     app = pg.mkQApp()
     w = MainWindow()
     w.show()

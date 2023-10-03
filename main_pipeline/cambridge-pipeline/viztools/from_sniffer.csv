@@ -1,0 +1,9 @@
+root,rec_system,brain_area,implant_name,intermediate,rec_name,node,experiment
+nas,Cambridge_Recordings,AreaX_LMAN,Test_Data_troubleshoot,Recordings,2023-08-23_15-56-05,Record Node 101,experiment1
+nas,Cambridge_Recordings,AreaX_LMAN,Test_Data_troubleshoot,Recordings,2023-08-23_15-56-05,Record Node 106,experiment1
+nas,Cambridge_Recordings,AreaX_LMAN,Test_Data_troubleshoot,Recordings,2023-08-23_17-22-38,Record Node 101,experiment1
+nas,Cambridge_Recordings,AreaX_LMAN,Test_Data_troubleshoot,Recordings,2023-08-23_17-22-38,Record Node 106,experiment1
+nas,Cambridge_Recordings,AreaX_LMAN,Test_Data_troubleshoot,Recordings,2023-08-24_12-06-07,Record Node 101,experiment1
+nas,Cambridge_Recordings,AreaX_LMAN,Test_Data_troubleshoot,Recordings,2023-08-24_12-06-07,Record Node 101,experiment2
+nas,Cambridge_Recordings,AreaX_LMAN,Test_Data_troubleshoot,Recordings,2023-08-24_12-06-07,Record Node 106,experiment1
+nas,Cambridge_Recordings,AreaX_LMAN,Test_Data_troubleshoot,Recordings,2023-08-24_12-06-07,Record Node 106,experiment2

@@ -8,15 +8,10 @@ This is the script to launch ephyviewer.
 
 __author__ = "Eduarda Centeno & Samuel Garcia"
 __contact__ = "teame4.leblois@gmail.com"
-__date__ = "2021/10/1"  ### Date it was created
+__date__ = "2023/10/1"  ### Date it was created
 __status__ = (
     "Production"  ### Production = still being developed. Else: Concluded/Finished.
 )
-
-
-####################
-# Review History   #
-####################
 
 
 ####################
@@ -29,91 +24,158 @@ from pathlib import Path
 # Third party imports ### (Put here third-party libraries e.g. pandas, numpy)
 import spikeinterface.full as si
 import ephyviewer
+from ephyviewer.myqt import QT
 
 # Internal imports ### (Put here imports that are related to internal codes from the lab)
+from utils import *
+from params_viz import *
+from path_handling_viz import *
 
 
-# Choose sources:
-ap = False
-raw_lfp = True
-mic = True
-filtered_lfp = False
-sorting = False
+def open_my_viewer(
+    brain_area,
+    implant_name,
+    rec_name,
+    ap_recording=True,
+    mic_spectrogram=True,
+    lf_recording=False,
+    viz_sorting=False,
+    load_sync_channel=False,
+    parent=None,
+):
+    def slice_rec(rec, time_range=None, depth_range=None):
+        if time_range is not None:
+            rec = slice_rec_time(rec, time_range)
 
-# Paths
-base_folder = Path('/home/user_duda/smb4k/N-E4-BIGNAS.LOCAL/Public/Neuropixel_Recordings/AreaX-LMAN/Imp_10_11_2021/Recordings/')
-data_folder = base_folder / 'Rec_2_19_11_2021_g0'
+        if depth_range is not None:
+            rec = slice_rec_depth(rec, depth_range)
 
-print(data_folder)
+        return rec
 
-# sorting_sub_path = 'sorting_20220420/full/filter+cmr_radius/tridesclous/custom_tdc_1/'
-#
-# ## Folders
-# sorting_folder = data_folder / sorting_sub_path
-# print(sorting_folder)
+    # Find folders
+    spikeglx_folder = concatenate_spikeglx_folder_path(brain_area, implant_name, rec_name)
+
+    ## App and viewer objects
+    win = ephyviewer.MainViewer(debug=True, show_auto_scale=True, parent=parent)
+
+    ### Sources
+    if ap_recording:
+        recording_spike = si.read_spikeglx(
+            spikeglx_folder, stream_id="imec0.ap", load_sync_channel=load_sync_channel
+        )
+        # recording_spike = slice_rec(recording_spike, time_range, depth_range)
+        recording_spike = si.depth_order(recording_spike, flip=True)
+        
+        sig_source0 = ephyviewer.SpikeInterfaceRecordingSource(
+            recording=recording_spike
+        )
+
+        # sig_source0.sample_rate = sig_source0.sample_rate / synchro["a"]
+        # sig_source0._t_start = sig_source0._t_start + synchro["b"]
+
+        view0 = ephyviewer.TraceViewer(source=sig_source0, name="ap_raw")
+        view0.params["scale_mode"] = "same_for_all"
+        for c in range(recording_spike.get_num_channels()):
+            if c == 1:
+                visible = True
+            else:
+                visible = False
+            view0.by_channel_params[f"ch{c}", "visible"] = visible
+        win.add_view(view0)
+
+    if lf_recording:
+        recording_lf = si.read_spikeglx(
+            spikeglx_folder, stream_id="imec0.lf", load_sync_channel=load_sync_channel
+        )
+
+        recording_lf = si.depth_order(recording_lf, flip=True)
+        # recording_lf = slice_rec(recording_lf, time_range, depth_range)
+
+        sig_source2 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_lf)
+        # sig_source2.sample_rate = sig_source2.sample_rate / synchro["a"]
+        # sig_source2._t_start = sig_source2._t_start + synchro["b"]
+
+        view2 = ephyviewer.TraceViewer(source=sig_source2, name="signals lf")
+        win.add_view(view2)
+
+        # time-freq
+        view2_tf = ephyviewer.TimeFreqViewer(
+            source=sig_source2, name="timefreq"
+        )  # Timefreq view of LFP
+
+        view2.params["scale_mode"] = "same_for_all"
+        for c in range(recording_lf.get_num_channels()):
+            if c == 1:
+                visible = True
+            else:
+                visible = False
+            view2.by_channel_params[f"ch{c}", "visible"] = visible
+        win.add_view(view2_tf)
+
+    if mic_spectrogram:
+        recording_nidq = si.read_spikeglx(
+            spikeglx_folder, stream_id="nidq"
+        )
+
+        # recording_nidq = slice_rec(recording_nidq, time_range, None)
+
+        sig_source3 = ephyviewer.SpikeInterfaceRecordingSource(
+            recording=recording_nidq
+        )
+        view_raw_mic = ephyviewer.TraceViewer(source=sig_source3, name="raw mic")
+        view3 = ephyviewer.SpectrogramViewer(
+            source=sig_source3, name="signals nidq"
+        )
+
+        view3.params["colormap"] = "inferno"
+        view3.params.child("scalogram")["overlapratio"] = 0.2
+        view3.params.child("scalogram")["binsize"] = 0.02
+        for c in range(recording_nidq.get_num_channels()):
+            if c == 0:
+                visible = True
+            else:
+                visible = False
+            view3.by_channel_params[f"ch{c}", "visible"] = visible
+        win.add_view(view_raw_mic)
+        win.add_view(view3, tabify_with="raw mic")
+
+    if viz_sorting:
+        dia = QT.QFileDialog(
+            fileMode=QT.QFileDialog.Directory, acceptMode=QT.QFileDialog.AcceptOpen
+        )
+        dia.setViewMode(QT.QFileDialog.Detail)
+        if dia.exec_():
+            folder_names = dia.selectedFiles()
+            sorting_folder = folder_names[0]
+        else:
+            return
+
+        sorting_data = si.load_extractor(sorting_folder)
+    #     sorting_folder = concatenate_clean_sorting_path(
+    #     implant_name, rec_name, time_range, depth_range, time_stamp, sorter_name
+    # ) 
+        # t_start = synchro["b"]
+        # sr = sorting_data.get_sampling_frequency() / synchro["a"]
+        all_spikes = []
+        for unit_id in sorting_data.unit_ids:
+            spike_times = sorting_data.get_unit_spike_train(unit_id=unit_id) #/ sr + t_start
+            all_spikes.append({"time": spike_times, "name": f"Unit#{unit_id}"})
+        spike_source = ephyviewer.InMemorySpikeSource(all_spikes)
+
+        view6 = ephyviewer.SpikeTrainViewer(
+            source=spike_source, name="sorting"
+        )  # spiking traces
+
+        win.add_view(view6)
+
+    return win
 
 
-# App and viewer objects
-app = ephyviewer.mkQApp()
-win = ephyviewer.MainViewer(debug=True, show_auto_scale=True)
+# if __name__ == "__main__":
+#     implant_name = "Test_Data_troubleshoot"
+#     rec_name = "2023-08-23_15-56-05"
+#     app = ephyviewer.mkQApp()
 
-### Sources
-if ap:   
-    recording_spike = si.SpikeGLXRecordingExtractor(data_folder, stream_id='imec0.ap') # ap file
-    sig_source0 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_spike) # spike trains
-    view0 = ephyviewer.TraceViewer(source=sig_source0, name='ap') # Trace of ap signal
-    win.add_view(view0)
-    
-if raw_lfp:
-    recording_lf = si.SpikeGLXRecordingExtractor(data_folder, stream_id='imec0.lf') # lfp
-    sig_source1 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_lf) # lfp
-
-    view1 = ephyviewer.TraceViewer(source=sig_source1, name='signals lf') # Trace of LFP
-    win.add_view(view1)
-    
-    # time-freq
-    view1_tf = ephyviewer.TimeFreqViewer(source=sig_source1, name='timefreq') # Timefreq view of LFP
-    win.add_view(view1_tf)
-
-if mic:
-    recording_nidq = si.SpikeGLXRecordingExtractor(data_folder, stream_id='nidq') # microphone
-    
-    print(recording_nidq.get_sampling_frequency())
-    print(recording_nidq)
-    sig_source2 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_nidq) # microphone
-    view2 = ephyviewer.SpectrogramViewer(source=sig_source2, name='signals nidq') # Trace of Microphone
-    win.add_view(view2)
-
-if filtered_lfp:
-    recording_lf = si.SpikeGLXRecordingExtractor(data_folder, stream_id='imec0.lf') # lfp
-    recording_f = si.bandpass_filter(recording_lf, 50, 180)
-    sig_source3 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_lf) # filtered LFP trace
-    view3 = ephyviewer.TraceViewer(source=sig_source3, name='signals flfp') # Trace of LFP filtered
-    win.add_view(view3)
-   
-
-if sorting:
-    # choose which by commenting!
-    sorting = si.TridesclousSortingExtractor(sorting_folder)    # TridesclousSortingExtractor
-    #sorting = si.SpykingCircusSortingExtractor(folder) # SpykingCircusSortingExtractor
-    print(sorting)
-
-    spike_source = ephyviewer.SpikeInterfaceSortingSource(sorting)
-
-    view4 = ephyviewer.SpikeTrainViewer(source=spike_source, name='sorting') # spiking traces
-    win.add_view(view4)    
-
-
-## Display only 2 channels
-#for channel in range(recording_spike.get_num_channels()):
-   #for view in (view0, view2):
-        #if channel <3:
-            #view.by_channel_params[f'ch{channel}', 'visible'] = True
-        #else:
-            #view.by_channel_params[f'ch{channel}', 'visible'] = False
-
-
-# Display
-win.show()
-app.exec_()
-
+#     win = open_my_viewer(implant_name, rec_name)
+#     win.show()
+#     app.exec_()

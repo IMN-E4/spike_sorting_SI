@@ -80,8 +80,8 @@ class MainWindow(QT.QMainWindow):
 
     def refresh_tree(self):
         group = main_index.groupby("implant_name") # pay attention!
-        for bird_name, index in group.groups.items():
-            item = QT.QTreeWidgetItem([f"{bird_name}"])
+        for implant_name, index in group.groups.items():
+            item = QT.QTreeWidgetItem([f"{implant_name}"])
             self.tree.addTopLevelItem(item)
             for key, row in main_index.loc[index].iterrows():
                 text = " ".join("{}={}".format(k, row[k]) for k in display_columns)
@@ -116,12 +116,12 @@ class MainWindow(QT.QMainWindow):
     def open_viewer(self):
         key = self.sender().key
         brain_area = main_index.loc[key, "brain_area"]
-        bird_name = main_index.loc[key, "implant_name"]
-        session_name = main_index.loc[key, "rec_name"]
+        implant_name = main_index.loc[key, "implant_name"]
+        rec_name = main_index.loc[key, "rec_name"]
         node = main_index.loc[key, "node"]
         experiment = main_index.loc[key, "experiment"]
 
-        print(bird_name, session_name)
+        print(implant_name, rec_name)
 
         params = [
             {"name": "mic_spectrogram", "type": "bool", "value": True},
@@ -138,8 +138,8 @@ class MainWindow(QT.QMainWindow):
 
         w = open_my_viewer(
             brain_area,
-            bird_name,
-            session_name,
+            implant_name,
+            rec_name,
             node,
             experiment,
             parent=self,
@@ -147,7 +147,7 @@ class MainWindow(QT.QMainWindow):
         )
 
         w.show()
-        w.setWindowTitle(bird_name + " " + session_name)
+        w.setWindowTitle(implant_name + " " + rec_name)
         self.all_viewers.append(w)
 
         for w in [w for w in self.all_viewers if w.isVisible()]:

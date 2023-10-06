@@ -32,8 +32,8 @@ from params_viz import *
 
 
 def open_my_viewer(brain_area, 
-                   bird_name, 
-                   session_name, 
+                   implant_name, 
+                   rec_name, 
                    node, 
                    experiment,
                    raw_recording=True,
@@ -42,7 +42,7 @@ def open_my_viewer(brain_area,
                    viz_sorting=False,
                    parent=None):
     data_folder = (
-        base_folder / f"{brain_area}/{bird_name}/Recordings/{session_name}/{node}/"
+        base_folder / f"{brain_area}/{implant_name}/Recordings/{rec_name}/{node}/"
     )
     experiment = experiment.strip("experiment")
     experiment = int(experiment) - 1
@@ -130,10 +130,10 @@ def open_my_viewer(brain_area,
 
 
 # if __name__ == "__main__":
-#     bird_name = "Test_Data_troubleshoot"
-#     session_name = "2023-08-23_15-56-05"
+#     implant_name = "Test_Data_troubleshoot"
+#     rec_name = "2023-08-23_15-56-05"
 #     app = ephyviewer.mkQApp()
 
-#     win = open_my_viewer(bird_name, session_name)
+#     win = open_my_viewer(implant_name, rec_name)
 #     win.show()
 #     app.exec_()

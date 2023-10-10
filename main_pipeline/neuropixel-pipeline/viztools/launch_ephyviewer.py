@@ -13,20 +13,25 @@ __status__ = (
     "Production"  ### Production = still being developed. Else: Concluded/Finished.
 )
 
+###########
+# To do   #
+###########
+## fix sliced cases???
+## weird errors when add sorting??
 
 ####################
 # Libraries        #
 ####################
 
-# Standard imports  ### (Put here built-in libraries - https://docs.python.org/3/library/)
-from pathlib import Path
+# Standard imports
 
-# Third party imports ### (Put here third-party libraries e.g. pandas, numpy)
+
+# Third party imports
 import spikeinterface.full as si
 import ephyviewer
 from ephyviewer.myqt import QT
 
-# Internal imports ### (Put here imports that are related to internal codes from the lab)
+# Internal imports
 from utils import *
 from params_viz import *
 from path_handling_viz import *
@@ -53,7 +58,9 @@ def open_my_viewer(
         return rec
 
     # Find folders
-    spikeglx_folder = concatenate_spikeglx_folder_path(brain_area, implant_name, rec_name)
+    spikeglx_folder = concatenate_spikeglx_folder_path(
+        brain_area, implant_name, rec_name
+    )
 
     ## App and viewer objects
     win = ephyviewer.MainViewer(debug=True, show_auto_scale=True, parent=parent)
@@ -65,7 +72,7 @@ def open_my_viewer(
         )
         # recording_spike = slice_rec(recording_spike, time_range, depth_range)
         recording_spike = si.depth_order(recording_spike, flip=True)
-        
+
         sig_source0 = ephyviewer.SpikeInterfaceRecordingSource(
             recording=recording_spike
         )
@@ -96,12 +103,9 @@ def open_my_viewer(
         # sig_source2._t_start = sig_source2._t_start + synchro["b"]
 
         view2 = ephyviewer.TraceViewer(source=sig_source2, name="signals lf")
-        win.add_view(view2)
 
         # time-freq
-        view2_tf = ephyviewer.TimeFreqViewer(
-            source=sig_source2, name="timefreq"
-        )  # Timefreq view of LFP
+        view2_tf = ephyviewer.TimeFreqViewer(source=sig_source2, name="timefreq")
 
         view2.params["scale_mode"] = "same_for_all"
         for c in range(recording_lf.get_num_channels()):
@@ -111,21 +115,16 @@ def open_my_viewer(
                 visible = False
             view2.by_channel_params[f"ch{c}", "visible"] = visible
         win.add_view(view2_tf)
+        win.add_view(view2)
 
     if mic_spectrogram:
-        recording_nidq = si.read_spikeglx(
-            spikeglx_folder, stream_id="nidq"
-        )
+        recording_nidq = si.read_spikeglx(spikeglx_folder, stream_id="nidq")
 
         # recording_nidq = slice_rec(recording_nidq, time_range, None)
 
-        sig_source3 = ephyviewer.SpikeInterfaceRecordingSource(
-            recording=recording_nidq
-        )
+        sig_source3 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_nidq)
         view_raw_mic = ephyviewer.TraceViewer(source=sig_source3, name="raw mic")
-        view3 = ephyviewer.SpectrogramViewer(
-            source=sig_source3, name="signals nidq"
-        )
+        view3 = ephyviewer.SpectrogramViewer(source=sig_source3, name="signals nidq")
 
         view3.params["colormap"] = "inferno"
         view3.params.child("scalogram")["overlapratio"] = 0.2
@@ -150,15 +149,23 @@ def open_my_viewer(
         else:
             return
 
+        recording_spike = si.read_spikeglx(
+            spikeglx_folder, stream_id="imec0.ap", load_sync_channel=load_sync_channel
+        )
         sorting_data = si.load_extractor(sorting_folder)
-    #     sorting_folder = concatenate_clean_sorting_path(
-    #     implant_name, rec_name, time_range, depth_range, time_stamp, sorter_name
-    # ) 
+        #     sorting_folder = concatenate_clean_sorting_path(
+        #     implant_name, rec_name, time_range, depth_range, time_stamp, sorter_name
+        # )
         # t_start = synchro["b"]
-        # sr = sorting_data.get_sampling_frequency() / synchro["a"]
+        # t_start = recording_spike.get_times()[0]
+        # t_start = recording_spike.get_time_info()['t_start']
+        # sr = recording_spike.get_time_info()['sampling_frequency'] # / synchro["a"]
         all_spikes = []
-        for unit_id in sorting_data.unit_ids:
-            spike_times = sorting_data.get_unit_spike_train(unit_id=unit_id) #/ sr + t_start
+        for unit_id in sorting_data.unit_ids[::-1]:
+            spike_times = sorting_data.get_unit_spike_train(
+                unit_id=unit_id, return_times=True
+            )   
+            # / sr + t_start
             all_spikes.append({"time": spike_times, "name": f"Unit#{unit_id}"})
         spike_source = ephyviewer.InMemorySpikeSource(all_spikes)
 
@@ -169,13 +176,3 @@ def open_my_viewer(
         win.add_view(view6)
 
     return win
-
-
-# if __name__ == "__main__":
-#     implant_name = "Test_Data_troubleshoot"
-#     rec_name = "2023-08-23_15-56-05"
-#     app = ephyviewer.mkQApp()
-
-#     win = open_my_viewer(implant_name, rec_name)
-#     win.show()
-#     app.exec_()

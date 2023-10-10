@@ -127,13 +127,3 @@ def open_my_viewer(brain_area,
         win.add_view(view4)
 
     return win
-
-
-# if __name__ == "__main__":
-#     implant_name = "Test_Data_troubleshoot"
-#     rec_name = "2023-08-23_15-56-05"
-#     app = ephyviewer.mkQApp()
-
-#     win = open_my_viewer(implant_name, rec_name)
-#     win.show()
-#     app.exec_()

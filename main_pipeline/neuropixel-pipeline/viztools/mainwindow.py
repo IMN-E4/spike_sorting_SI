@@ -37,13 +37,12 @@ import pyqtgraph as pg
 from ephyviewer.tools import ParamDialog
 
 # Internal imports
-from params_viz import path_to_database
+from params_viz import path_to_recordings_database
 from launch_ephyviewer import open_my_viewer
 
 
 ################################################################################
-main_index = pd.read_csv(path_to_database)
-
+recordings_index = pd.read_csv(path_to_recordings_database)
 display_columns = ["brain_area", "implant_name", "rec_name"]
 
 
@@ -74,11 +73,11 @@ class MainWindow(QT.QMainWindow):
         self.all_viewers = []
 
     def refresh_tree(self):
-        group = main_index.groupby("brain_area") # pay attention!
-        for implant_name, index in group.groups.items():
-            item = QT.QTreeWidgetItem([f"{implant_name}"])
+        group = recordings_index.groupby("brain_area")  # pay attention!
+        for brain_area, index in group.groups.items():
+            item = QT.QTreeWidgetItem([f"{brain_area}"])
             self.tree.addTopLevelItem(item)
-            for key, row in main_index.loc[index].iterrows():
+            for key, row in recordings_index.loc[index].iterrows():
                 text = " ".join("{}={}".format(k, row[k]) for k in display_columns)
                 child = QT.QTreeWidgetItem([text])
                 child.key = key
@@ -108,13 +107,12 @@ class MainWindow(QT.QMainWindow):
 
         menu.exec_(self.tree.viewport().mapToGlobal(position))
 
+    # Open Ephyviewer
     def open_viewer(self):
         key = self.sender().key
-        brain_area = main_index.loc[key, "brain_area"]
-        implant_name = main_index.loc[key, "implant_name"]
-        rec_name = main_index.loc[key, "rec_name"]
-
-        print(brain_area, implant_name, rec_name)
+        brain_area = recordings_index.loc[key, "brain_area"]
+        implant_name = recordings_index.loc[key, "implant_name"]
+        rec_name = recordings_index.loc[key, "rec_name"]
 
         params = [
             {"name": "mic_spectrogram", "type": "bool", "value": True},

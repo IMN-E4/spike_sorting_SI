@@ -26,9 +26,10 @@ from pathlib import Path
 # Third party imports
 import spikeinterface.full as si
 import numpy as np
+import pandas as pd
 
 # Internal imports
-# from params_NP import preprocessing_params
+from params_viz import base_folder
 
 
 def slice_rec_time(rec, time_range):
@@ -151,77 +152,29 @@ def read_rec(
     return rec
 
 
-def apply_preprocess(rec):
-    """Apply lazy preprocessing chain.
+def identify_time_and_depth_range(sorting_folder):
+    sorting_folder = Path(sorting_folder)
+    depth_range = None
+    time_range = None
 
-    Parameters
-    ----------
-    rec: spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording
-        recording to apply preprocessing on.
+    split_parts = sorting_folder.parts[1:]
+    for part in split_parts:
+        if "Rec_" in part:
+            split = part.split("-")
+            time_stamp = "-".join(split[:2])
+            rec_name_sorting = split[2]
+            time_range_tmp = split[3]
 
-    Returns
-    -------
-    rec_preproc: spikeinterface object
-        preprocessed rec
-    """
-    assert isinstance(
-        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording)
-    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
+            if time_range_tmp != "full":
+                times = time_range_tmp.split("to")
+                time_beg = int(times[0])
+                time_end = int(times[1])
+                time_range = (time_beg, time_end)
 
-    # Phase shift correction
-    rec = si.phase_shift(rec)
+        if "depth" in part:
+            depth = part.split("_")
+            depth_beg = int(depth[1])
+            depth_end = int(depth[3])
+            depth_range = (depth_beg, depth_end)
 
-    # Bandpass filter
-    rec = si.bandpass_filter(
-        rec,
-        freq_min=preprocessing_params["highpass"],
-        freq_max=preprocessing_params["lowpass"],
-    )
-
-    # Common referencing
-    rec_preproc = si.common_reference(
-        rec,
-        reference=preprocessing_params["reference"],
-        local_radius=preprocessing_params["local_radius"],
-    )
-    return rec_preproc
-
-
-def correct_drift(rec, working_folder):
-    """Apply drift correction
-
-    Parameters
-    ----------
-    rec: spikeinterface BinaryFolderRecording
-        recording to apply preprocessing on.
-
-    working_folder: Path
-        working folder
-
-    Returns
-    -------
-    recording_corrected: spikeinterface object
-        drift-corrected rec
-    """
-    assert isinstance(
-        working_folder, Path
-    ), f"working_folder must be Path not {type(working_folder)}"
-    assert isinstance(
-        rec, si.SpikeGLXRecordingExtractor
-    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor not {type(rec)}"
-
-    motion_file0 = working_folder / "motion.npy"
-    motion_file1 = working_folder / "motion_temporal_bins.npy"
-    motion_file2 = working_folder / "motion_spatial_bins.npy"
-
-    if motion_file0.exists():
-        motion = np.load(motion_file0)
-        temporal_bins = np.load(motion_file1)
-        spatial_bins = np.load(motion_file2)
-    else:
-        raise "drift params not computer! run pre sorting checks first!"
-
-    recording_corrected = si.correct_motion(  ### is this valid?
-        rec, motion, temporal_bins, spatial_bins
-    )
-    return recording_corrected
+    return rec_name_sorting, time_stamp, depth_range, time_range

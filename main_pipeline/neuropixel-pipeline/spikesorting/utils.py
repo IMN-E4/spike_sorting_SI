@@ -82,8 +82,8 @@ def slice_rec_depth(rec, depth_range):
         depth-sliced recording
     """
     assert isinstance(
-        rec, si.SpikeGLXRecordingExtractor
-    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor not {type(rec)}"
+        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording
+    )), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
     assert isinstance(
         depth_range, (tuple, list, type(None))
     ), f"depth_range must be type tuple, list or None not {type(depth_range)}"

@@ -378,9 +378,9 @@ def run_postprocessing_sorting(
 
     for sorter_name, _ in sorters.items():
         sorting_clean_folder = Path(
-            str(sorting_clean_folder).replace("None", sorter_name)
+            str(sorting_clean_folder).replace("temp", sorter_name)
         )
-        print(sorting_clean_folder)
+        print(f"NAS data is saved at {sorting_clean_folder}")
 
         # Read existing waveforms
         wf_folder = working_folder / f"waveforms_{sorter_name}"
@@ -686,7 +686,7 @@ def compare_sorter_cleaned(working_folder, sorting_clean_folder):
     sortings = []
     for sorter_name, _ in sorters.items():
         sorting_clean_folder = Path(
-            str(sorting_clean_folder).replace("None", sorter_name)
+            str(sorting_clean_folder).replace("temp", sorter_name)
         )
         sorting = si.load_extractor(sorting_clean_folder)
         sortings.append(sorting)
@@ -775,12 +775,12 @@ def run_all(
             implant_name, rec_name, time_range, depth_range, time_stamp
         )
         NAS_sorting_folder = concatenate_clean_sorting_path(
-            implant_name, rec_name, time_range, depth_range, time_stamp, ""
+            implant_name, rec_name, time_range, depth_range, time_stamp, "temp"
         )
 
         print(f"Data is coming from {spikeglx_folder}")
         print(f"Cache is saved at {cache_working_folder}")
-
+    
         if any([pre_check, sorting, postproc]):
             # Get relevant recording
             rec_preprocess = get_preprocess_recording(
@@ -805,12 +805,11 @@ def run_all(
             if postproc:
                 # Run postprocessing
                 run_postprocessing_sorting(
-                    rec_preprocess,
-                    cache_working_folder,
-                    NAS_sorting_folder,
-                    drift_correction,
+                    rec_preprocess=rec_preprocess,
+                    working_folder=cache_working_folder,
+                    sorting_clean_folder=NAS_sorting_folder,
+                    drift_correction=drift_correction,
                 )
-                print(f"Final sorting is saved at {NAS_sorting_folder}")
 
         if compare_sorters:
             # Compare sorters
@@ -824,8 +823,8 @@ def run_all(
 
 
 if __name__ == "__main__":
-    pre_check = True
-    sorting = True
+    pre_check = False
+    sorting = False
     postproc = True
     compare_sorters = False
     compute_alignment = True

@@ -165,8 +165,8 @@ def apply_preprocess(rec):
         preprocessed rec
     """
     assert isinstance(
-        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording)
-    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
+        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording, si.ChannelSliceRecording)
+    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording or ChannelSliceRecording not {type(rec)}"
 
     # Phase shift correction
     rec = si.phase_shift(rec)

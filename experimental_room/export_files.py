@@ -14,7 +14,11 @@ def correct_metadata(output_path_file,
                      rec_name, 
                      rec_ap_new,
                      rec_lf_new, 
-                     rec_mic_new):
+                     rec_mic_new,
+                     time_range):
+    # Time range
+    t0 = time_range[0]
+    t1 = time_range[1]
 
     recs = list()
     suffixes = list()
@@ -30,15 +34,14 @@ def correct_metadata(output_path_file,
         recs += [rec_lf_new]
         suffixes += ['_t0.imec0.lf.meta']
 
-
-    print(recs)
-
     for rec, suffix in zip(recs,suffixes):
         file_path = (output_path_file / (rec_name+suffix))
+        print(file_path)
         meta = file_path.read_text().splitlines()
         file_size_bytes = meta[5].split('=')
         file_time_secs = meta[6].split('=')
-        new_val_bytes = os.path.getsize(file_path.as_posix().replace('.meta', '.bin'))
+        new_f_name = (output_path_file / (rec_name+f'_from_{t0}_to_{t1}s_g0'+suffix))
+        new_val_bytes = os.path.getsize(new_f_name.as_posix().replace('.meta', '.bin'))
         new_val_time = rec.get_total_duration()
         file_size_bytes[1] = new_val_bytes
         file_time_secs[1] = new_val_time
@@ -48,6 +51,9 @@ def correct_metadata(output_path_file,
                 for item in meta:
                     # write each item on a new line
                     fp.write("%s\n" % item)
+        
+        os.rename(file_path, new_f_name)
+
     print('Done')  
             
 
@@ -57,7 +63,7 @@ def export_files(rec_ap,
                  original_path, 
                  output_path, 
                  time_range):
-     # Time range
+    # Time range
     t0 = time_range[0]
     t1 = time_range[1]
 
@@ -73,21 +79,21 @@ def export_files(rec_ap,
     if rec_ap is not None:
         fs_ap = rec_ap.get_sampling_frequency()
         rec_ap_new = rec_ap.frame_slice(start_frame=t0*fs_ap, end_frame=t1*fs_ap)
-        si.write_binary_recording(rec_ap_new, file_paths=[output_path_file / (rec_name+'_t0.imec0.ap.bin')], dtype='int16', add_file_extension=False,
+        si.write_binary_recording(rec_ap_new, file_paths=[output_path_file / (rec_name+f'_from_{t0}_to_{t1}s'+'_g0_t0.imec0.ap.bin')], dtype='int16', add_file_extension=False,
                            verbose=False, byte_offset=0, auto_cast_uint=False,  **job_kwargs_local)
 
     rec_mic_new = None
     if rec_mic is not None:
         fs_mic = rec_mic.get_sampling_frequency()
         rec_mic_new = rec_mic.frame_slice(start_frame=t0*fs_mic, end_frame=t1*fs_mic)
-        si.write_binary_recording(rec_mic_new, file_paths=[output_path_file / (rec_name+'_t0.nidq.bin')], dtype='int16', add_file_extension=False,
+        si.write_binary_recording(rec_mic_new, file_paths=[output_path_file / (rec_name+f'_from_{t0}_to_{t1}s'+'_g0_t0.nidq.bin')], dtype='int16', add_file_extension=False,
                            verbose=False, byte_offset=0, auto_cast_uint=False, **job_kwargs_local)
 
     rec_lf_new = None
     if rec_lf is not None:
         fs_lf = rec_lf.get_sampling_frequency()
         rec_lf_new = rec_lf.frame_slice(start_frame=t0*fs_lf, end_frame=t1*fs_lf)
-        si.write_binary_recording(rec_lf_new, file_paths=[output_path_file / (rec_name+'_t0.imec0.lf.bin')], dtype='int16', add_file_extension=False,
+        si.write_binary_recording(rec_lf_new, file_paths=[output_path_file / (rec_name+f'_from_{t0}_to_{t1}s'+'_g0_t0.imec0.lf.bin')], dtype='int16', add_file_extension=False,
                            verbose=False, byte_offset=0, auto_cast_uint=False, **job_kwargs_local)
 
     # Move metadata
@@ -96,11 +102,14 @@ def export_files(rec_ap,
         file = Path(file)
         shutil.copy(file, output_path_file/file.parts[-1])
         
+    print ('Altering metadata')
+    
     correct_metadata(output_path_file, 
                      rec_name, 
                      rec_ap_new,
                      rec_lf_new, 
-                     rec_mic_new)
+                     rec_mic_new,
+                     time_range)
     
     readme_path = output_path_file / 'readme.txt'
     with open(readme_path, 'w') as fp:

@@ -515,6 +515,10 @@ def run_postprocessing_sorting(
         df.loc[multi_units, "unit_type"] = "multi"
         df.to_csv(csv_metrics_path, index=True)
 
+        # Save params to cache and NAS
+        propagate_params(params_location, sorting_clean_folder)
+        propagate_params(params_location, report_clean_folder)
+
 
 def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
     """Compute pulse alignment values [linear regression between TTL]
@@ -823,8 +827,8 @@ def run_all(
 
 
 if __name__ == "__main__":
-    pre_check = False
-    sorting = False
+    pre_check = True
+    sorting = True
     postproc = True
     compare_sorters = False
     compute_alignment = True

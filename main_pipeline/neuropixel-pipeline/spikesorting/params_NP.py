@@ -26,6 +26,8 @@ job_kwargs = {
 #########################
 # Preprocessing params  #
 #########################
+params_location = Path(__file__)
+
 preprocessing_params = {
     "lowpass": 6000,
     "highpass": 300,

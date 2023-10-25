@@ -22,6 +22,7 @@ __status__ = "Production"
 
 # Standard imports
 from pathlib import Path
+from shutil import copy
 
 # Third party imports
 import spikeinterface.full as si
@@ -145,7 +146,7 @@ def read_rec(
     if time_range is not None:
         rec = slice_rec_time(rec, time_range)
 
-    elif depth_range is not None:
+    if depth_range is not None:
         rec = slice_rec_depth(rec, depth_range)
 
     return rec
@@ -225,3 +226,13 @@ def correct_drift(rec, working_folder):
         rec, motion, temporal_bins, spatial_bins
     )
     return recording_corrected
+
+def propagate_params(original_file_path, output_path):
+
+    assert isinstance(original_file_path, Path), f'original_file_path must be Path not {type(original_file_path)}'
+    assert isinstance(output_path, Path), f'output_path must be Path not {type(output_path)}'
+    assert original_file_path.exists(), 'revise path of original file'
+
+    output_file_path = output_path / original_file_path.parts[-1]
+
+    copy(original_file_path.as_posix(), output_file_path.as_posix())

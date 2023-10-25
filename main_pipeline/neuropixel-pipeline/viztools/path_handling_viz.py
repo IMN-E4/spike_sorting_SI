@@ -36,6 +36,9 @@ def concatenate_spikeglx_folder_path(brain_area, implant_name, rec_name):
 
     Parameters
     ----------
+    brain_area: str
+        brain area
+
     implant_name: str
         implant name
 
@@ -64,6 +67,9 @@ def concatenate_synchro_file_path(
 
     Parameters
     ----------
+    brain_area: str
+        brain area
+
     implant_name: str
         implant name
 
@@ -116,3 +122,38 @@ def concatenate_synchro_file_path(
     synchro_file = synchro_folder / "synchro_imecap_corr_on_nidq.json"
 
     return synchro_file
+
+def concatenate_available_sorting_paths(brain_area, implant_name, rec_name):
+    """Concatenates the sorting paths
+
+    Parameters
+    ----------
+    brain_area: str
+        brain area
+    
+    implant_name: str
+        implant name
+
+    rec_name: str
+        recording name
+
+    Returns
+    -------
+    sorting_folders: list of paths
+        available sortings for a recording
+    """
+    assert isinstance(
+        implant_name, str
+    ), f"implant_name must be type str not {type(implant_name)}"
+    assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
+
+    from pathlib import Path
+    base_folder = Path("/nas/Neuropixel_Recordings/")
+
+    main_path = base_folder / brain_area / implant_name / "Sortings_clean"
+
+    sorting_folders = list(main_path.glob(f"*-{rec_name}-*/**/sorting_cached.npz"))
+
+    sorting_folders = [folder.parent for folder in sorting_folders]
+
+    return sorting_folders

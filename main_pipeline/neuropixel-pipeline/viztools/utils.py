@@ -82,8 +82,8 @@ def slice_rec_depth(rec, depth_range):
         depth-sliced recording
     """
     assert isinstance(
-        rec, si.SpikeGLXRecordingExtractor
-    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor not {type(rec)}"
+        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording
+    )), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
     assert isinstance(
         depth_range, (tuple, list, type(None))
     ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
@@ -146,7 +146,7 @@ def read_rec(
     if time_range is not None:
         rec = slice_rec_time(rec, time_range)
 
-    elif depth_range is not None:
+    if depth_range is not None:
         rec = slice_rec_depth(rec, depth_range)
 
     return rec
@@ -159,6 +159,12 @@ def identify_time_and_depth_range(sorting_folder):
 
     split_parts = sorting_folder.parts[1:]
     for part in split_parts:
+        if "depth" in part:
+            depth = part.split("_")
+            depth_beg = int(depth[1])
+            depth_end = int(depth[3])
+            depth_range = (depth_beg, depth_end)
+
         if "Rec_" in part:
             split = part.split("-")
             time_stamp = "-".join(split[:2])
@@ -171,10 +177,6 @@ def identify_time_and_depth_range(sorting_folder):
                 time_end = int(times[1])
                 time_range = (time_beg, time_end)
 
-        if "depth" in part:
-            depth = part.split("_")
-            depth_beg = int(depth[1])
-            depth_end = int(depth[3])
-            depth_range = (depth_beg, depth_end)
+        
 
     return rec_name_sorting, time_stamp, depth_range, time_range

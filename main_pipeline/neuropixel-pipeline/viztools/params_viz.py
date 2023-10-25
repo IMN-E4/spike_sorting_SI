@@ -1,9 +1,5 @@
 from pathlib import Path
 
-# Params
-order_by_depth = True  # probe tip to probe upper part
-align_traces = True  # it can only be True if sorting will be selected!!!
-
 # Paths
 base_folder = Path("/nas/Neuropixel_Recordings/")
 path_to_recordings_database = Path(

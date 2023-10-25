@@ -24,6 +24,7 @@ __status__ = (
 
 # Standard imports
 import json
+import pathlib
 
 # Third party imports
 import spikeinterface.full as si
@@ -32,7 +33,6 @@ from ephyviewer.myqt import QT
 
 # Internal imports
 from utils import *
-from params_viz import order_by_depth, align_traces
 from path_handling_viz import *
 
 
@@ -44,9 +44,14 @@ def open_my_viewer(
     mic_spectrogram=True,
     lf_recording=False,
     viz_sorting=False,
+    align_streams=False, 
     load_sync_channel=False,
+    order_by_depth=True,
     parent=None,
-):
+):  
+
+    assert (load_sync_channel and order_by_depth) is False, 'It is not possible to have load_sync_channel and order_by_depth as True at the same time!'
+
     # Find folders
     spikeglx_folder = concatenate_spikeglx_folder_path(
         brain_area, implant_name, rec_name
@@ -59,26 +64,19 @@ def open_my_viewer(
     win = ephyviewer.MainViewer(debug=True, show_auto_scale=True, parent=parent)
 
     ### Sources
-    if viz_sorting:
-        # Open dialog to look for sorting folder
-        dia = QT.QFileDialog(
-            fileMode=QT.QFileDialog.Directory, acceptMode=QT.QFileDialog.AcceptOpen
-        )
-        dia.setViewMode(QT.QFileDialog.Detail)
-        if dia.exec_():
-            folder_names = dia.selectedFiles()
-            sorting_folder = folder_names[0]
-        else:
-            return
-
+    if type(viz_sorting) == pathlib.PosixPath:
+        sorting_folder = viz_sorting
+        
         # Identify if recording was sliced in time and/or depth
         rec_name_sorting, time_stamp, depth_range, time_range = identify_time_and_depth_range(
             sorting_folder
         )
+        
         assert rec_name_sorting == rec_name, "rec names dont match!"
 
         # Collect alignment information [if available]
-        if align_traces:
+        if align_streams:
+            print('Aligning streams!')
             synchro_file = concatenate_synchro_file_path(
                 brain_area,
                 implant_name,
@@ -102,7 +100,7 @@ def open_my_viewer(
         )
 
         # Create spike trains
-        if align_traces:
+        if align_streams:
             t_start = synchro["b"]
             t_start = recording_spike.get_times()[0]
             t_start = recording_spike.get_time_info()["t_start"]
@@ -117,7 +115,7 @@ def open_my_viewer(
                 unit_id=unit_id, return_times=True
             )
 
-            if align_traces:
+            if align_streams:
                 spike_times = spike_times + t_start
 
             all_spikes.append({"time": spike_times, "name": f"Unit#{unit_id}"})
@@ -148,7 +146,7 @@ def open_my_viewer(
         )
 
         # Align traces if possible
-        if align_traces:
+        if align_streams:
             source_ap.sample_rate = source_ap.sample_rate / synchro["a"]
             source_ap._t_start = source_ap._t_start + synchro["b"]
 
@@ -182,23 +180,26 @@ def open_my_viewer(
         source_lf = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_lf)
 
         # Align traces if possible
-        if align_traces:
+        if align_streams:
             source_lf.sample_rate = source_lf.sample_rate / synchro["a"]
             source_lf._t_start = source_lf._t_start + synchro["b"]
 
         # Create view and display only one channel to make things faster
         view2 = ephyviewer.TraceViewer(source=source_lf, name="signals lf")
-
         view2.params["scale_mode"] = "same_for_all"
+
+        # Plot time-freq
+        view2_ = ephyviewer.TimeFreqViewer(source=source_lf, name="time-freq")
+
         for c in range(recording_lf.get_num_channels()):
             if c == 1:
                 visible = True
             else:
                 visible = False
             view2.by_channel_params[f"ch{c}", "visible"] = visible
+            view2_.by_channel_params[f"ch{c}", "visible"] = visible
 
-        # Plot time-freq
-        view2_ = ephyviewer.TimeFreqViewer(source=source_lf, name="time-freq")
+        
 
         win.add_view(view2)
         win.add_view(view2_)

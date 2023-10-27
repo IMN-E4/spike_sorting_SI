@@ -22,10 +22,9 @@ __status__ = "Production"
 
 # Standard imports
 from datetime import datetime
+from pathlib import Path
 
 # Third party imports
-import spikeinterface.full as si
-import pandas as pd
 
 # Internal imports
 from params_viz import base_folder
@@ -147,10 +146,6 @@ def concatenate_available_sorting_paths(brain_area, implant_name, rec_name):
         implant_name, str
     ), f"implant_name must be type str not {type(implant_name)}"
     assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
-
-    from pathlib import Path
-
-    base_folder = Path("/nas/Neuropixel_Recordings/")
 
     main_path = base_folder / brain_area / implant_name / "Sortings_clean"
 

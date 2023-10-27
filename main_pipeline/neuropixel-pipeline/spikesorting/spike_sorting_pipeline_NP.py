@@ -223,8 +223,8 @@ def run_pre_sorting_checks(rec_preprocess, working_folder):
     figure_folder.mkdir(exist_ok=True, parents=True)
 
     plot_drift(
-        peaks,
         rec_preprocess,
+        peaks,
         peak_locations,
         name,
         figure_folder,
@@ -233,7 +233,7 @@ def run_pre_sorting_checks(rec_preprocess, working_folder):
         spatial_bins=spatial_bins,
     )
     plot_peaks_axis(rec_preprocess, peak_locations, name, figure_folder)
-    plot_peaks_activity(peaks, rec_preprocess, peak_locations, name, figure_folder)
+    plot_peaks_activity(rec_preprocess, peaks, figure_folder)
     plot_noise(
         rec_preprocess,
         figure_folder,

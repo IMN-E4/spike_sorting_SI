@@ -24,7 +24,7 @@ __status__ = "Production"
 from datetime import datetime
 
 # Third party imports
-import spikeinterface.full as si
+
 
 # Internal imports
 from params_NP import base_input_folder, base_sorting_cache_folder

@@ -24,7 +24,7 @@ __status__ = (
 
 # Standard imports
 import json
-import pathlib
+from pathlib import PosixPath
 
 # Third party imports
 import spikeinterface.full as si
@@ -65,7 +65,7 @@ def open_my_viewer(
     win = ephyviewer.MainViewer(debug=True, show_auto_scale=True, parent=parent)
 
     ### Sources
-    if type(viz_sorting) == pathlib.PosixPath:
+    if type(viz_sorting) == PosixPath:
         sorting_folder = viz_sorting
 
         # Identify if recording was sliced in time and/or depth
@@ -201,8 +201,8 @@ def open_my_viewer(
             view2.by_channel_params[f"ch{c}", "visible"] = visible
             view2_.by_channel_params[f"ch{c}", "visible"] = visible
 
-        win.add_view(view2)
         win.add_view(view2_)
+        win.add_view(view2, tabify_with="time-freq")
 
     if mic_spectrogram:
         # Read recording

@@ -26,11 +26,9 @@ import glob
 
 # Third party imports
 import spikeinterface.full as si
-import numpy as np
 import pandas as pd
 
 # Internal imports
-from params_viz import base_folder
 
 
 def slice_rec_time(rec, time_range):

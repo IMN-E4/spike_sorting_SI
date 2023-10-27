@@ -104,12 +104,12 @@ class MainWindow(QT.QMainWindow):
         elif level == 1:
             act = menu.addAction("Open viewer")
             act.key = items[0].key
-            act.triggered.connect(self.open_viewer)
+            act.triggered.connect(self.open_ephyviewer)
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
     # Open Ephyviewer
-    def open_viewer(self):
+    def open_ephyviewer(self):
         key = self.sender().key
         brain_area = recordings_index.loc[key, "brain_area"]
         implant_name = recordings_index.loc[key, "implant_name"]
@@ -132,7 +132,7 @@ class MainWindow(QT.QMainWindow):
                 "name": "available_sortings",
                 "type": "list",
                 "values": all_available_sortings,
-            },  ## add here the list of available sortings + blank, if blank, no sortings.
+            }
         ]
 
         dia = ParamDialog(params, title="Select streams")

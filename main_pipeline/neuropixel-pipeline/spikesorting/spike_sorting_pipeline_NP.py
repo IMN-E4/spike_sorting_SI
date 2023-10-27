@@ -784,7 +784,7 @@ def run_all(
 
         print(f"Data is coming from {spikeglx_folder}")
         print(f"Cache is saved at {cache_working_folder}")
-    
+
         if any([pre_check, sorting, postproc]):
             # Get relevant recording
             rec_preprocess = get_preprocess_recording(

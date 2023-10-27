@@ -83,8 +83,8 @@ def slice_rec_depth(rec, depth_range):
         depth-sliced recording
     """
     assert isinstance(
-        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording
-    )), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
+        rec, (si.SpikeGLXRecordingExtractor, si.FrameSliceRecording)
+    ), f"rec must be type spikeinterface SpikeGLXRecordingExtractor or FrameSliceRecording not {type(rec)}"
     assert isinstance(
         depth_range, (tuple, list, type(None))
     ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
@@ -154,6 +154,31 @@ def read_rec(
 
 
 def identify_time_and_depth_range(sorting_folder):
+    """Identify time and depth ranges from sorting foldername
+
+    Parameters
+    ----------
+    sorting_folder: str or Path
+        sorting folder
+
+    Returns
+    -------
+    rec_name_sorting: str
+        recording name
+
+    time_stamp: str
+        time stamp
+
+    depth_range: tuple[int, int]
+        depth range
+
+    time_range: tuple[int, int]
+        time range
+    """
+    assert isinstance(
+        sorting_folder, (str, Path)
+    ), f"sorting_folder must be type str or Path not {type(sorting_folder)}"
+
     sorting_folder = Path(sorting_folder)
     depth_range = None
     time_range = None
@@ -178,13 +203,27 @@ def identify_time_and_depth_range(sorting_folder):
                 time_end = int(times[1])
                 time_range = (time_beg, time_end)
 
-        
-
     return rec_name_sorting, time_stamp, depth_range, time_range
 
 
 def find_data_in_nas(root_to_data="/nas"):
+    """Find database in NAS
 
+    Parameters
+    ----------
+    root_to_data: str or Path
+        root folder where data is
+
+    Returns
+    -------
+    df: pandas DataFrame
+        database dataframe
+    """
+    
+    assert isinstance(
+        root_to_data, (str, Path)
+    ), f"root_to_data must be type str or Path not {type(root_to_data)}"
+    
     target_path = Path(root_to_data) / "Neuropixel_Recordings"
     keyword = "*ap.meta"
     df = pd.DataFrame(
@@ -194,16 +233,16 @@ def find_data_in_nas(root_to_data="/nas"):
             "brain_area",
             "implant_name",
             "intermediate",
-            "rec_name"
+            "rec_name",
         ]
     )
 
     glob_path = target_path / f"**/{keyword}"
     all_files = glob.glob(glob_path.as_posix(), recursive=True)
-    
+
     ## Populate dataframe
     for file in all_files:
         split_parts = Path(file).parts[1:-1]
         df.loc[len(df)] = split_parts
-    
+
     return df

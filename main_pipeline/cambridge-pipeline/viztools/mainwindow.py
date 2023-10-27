@@ -77,7 +77,7 @@ class MainWindow(QT.QMainWindow):
         self.all_viewers = []
 
     def refresh_tree(self):
-        group = main_index.groupby("implant_name") # pay attention!
+        group = main_index.groupby("implant_name")  # pay attention!
         for implant_name, index in group.groups.items():
             item = QT.QTreeWidgetItem([f"{implant_name}"])
             self.tree.addTopLevelItem(item)

@@ -123,6 +123,7 @@ def concatenate_synchro_file_path(
 
     return synchro_file
 
+
 def concatenate_available_sorting_paths(brain_area, implant_name, rec_name):
     """Concatenates the sorting paths
 
@@ -130,7 +131,7 @@ def concatenate_available_sorting_paths(brain_area, implant_name, rec_name):
     ----------
     brain_area: str
         brain area
-    
+
     implant_name: str
         implant name
 
@@ -148,6 +149,7 @@ def concatenate_available_sorting_paths(brain_area, implant_name, rec_name):
     assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
 
     from pathlib import Path
+
     base_folder = Path("/nas/Neuropixel_Recordings/")
 
     main_path = base_folder / brain_area / implant_name / "Sortings_clean"

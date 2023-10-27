@@ -37,7 +37,6 @@ import pyqtgraph as pg
 from ephyviewer.tools import ParamDialog
 
 # Internal imports
-from params_viz import path_to_recordings_database
 from launch_ephyviewer import open_my_viewer
 from path_handling_viz import concatenate_available_sorting_paths
 from utils import find_data_in_nas
@@ -115,10 +114,12 @@ class MainWindow(QT.QMainWindow):
         brain_area = recordings_index.loc[key, "brain_area"]
         implant_name = recordings_index.loc[key, "implant_name"]
         rec_name = recordings_index.loc[key, "rec_name"]
-        
+
         ## add list of available sortings
-        all_available_sortings = ['None']
-        all_available_sortings += concatenate_available_sorting_paths(brain_area, implant_name, rec_name)
+        all_available_sortings = ["None"]
+        all_available_sortings += concatenate_available_sorting_paths(
+            brain_area, implant_name, rec_name
+        )
 
         params = [
             {"name": "mic_spectrogram", "type": "bool", "value": True},
@@ -127,8 +128,11 @@ class MainWindow(QT.QMainWindow):
             {"name": "align_streams", "type": "bool", "value": False},
             {"name": "load_sync_channel", "type": "bool", "value": False},
             {"name": "order_by_depth", "type": "bool", "value": False},
-            {"name": "available_sortings", "type": "list", "values": all_available_sortings} ## add here the list of available sortings + blank, if blank, no sortings.
-            
+            {
+                "name": "available_sortings",
+                "type": "list",
+                "values": all_available_sortings,
+            },  ## add here the list of available sortings + blank, if blank, no sortings.
         ]
 
         dia = ParamDialog(params, title="Select streams")
@@ -136,13 +140,13 @@ class MainWindow(QT.QMainWindow):
             kwargs_streams = dia.get()
         else:
             return
-        
+
         available_sortings = kwargs_streams.pop("available_sortings")
         if available_sortings == "None":
             kwargs_streams["viz_sorting"] = False
         else:
             kwargs_streams["viz_sorting"] = available_sortings
-        
+
         w = open_my_viewer(
             brain_area=brain_area,
             implant_name=implant_name,

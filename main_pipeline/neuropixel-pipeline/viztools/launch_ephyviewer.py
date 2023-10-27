@@ -16,7 +16,7 @@ __status__ = (
 ###########
 # To do   #
 ###########
-## TEST MORE CASES AND FIX WHEN ALIGNMENT + TIME SLICING!
+## Add camera!
 
 ####################
 # Libraries        #
@@ -44,13 +44,14 @@ def open_my_viewer(
     mic_spectrogram=True,
     lf_recording=False,
     viz_sorting=False,
-    align_streams=False, 
+    align_streams=False,
     load_sync_channel=False,
     order_by_depth=True,
     parent=None,
-):  
-
-    assert (load_sync_channel and order_by_depth) is False, 'It is not possible to have load_sync_channel and order_by_depth as True at the same time!'
+):
+    assert (
+        load_sync_channel and order_by_depth
+    ) is False, "It is not possible to have load_sync_channel and order_by_depth as True at the same time!"
 
     # Find folders
     spikeglx_folder = concatenate_spikeglx_folder_path(
@@ -66,17 +67,20 @@ def open_my_viewer(
     ### Sources
     if type(viz_sorting) == pathlib.PosixPath:
         sorting_folder = viz_sorting
-        
+
         # Identify if recording was sliced in time and/or depth
-        rec_name_sorting, time_stamp, depth_range, time_range = identify_time_and_depth_range(
-            sorting_folder
-        )
-        
+        (
+            rec_name_sorting,
+            time_stamp,
+            depth_range,
+            time_range,
+        ) = identify_time_and_depth_range(sorting_folder)
+
         assert rec_name_sorting == rec_name, "rec names dont match!"
 
         # Collect alignment information [if available]
         if align_streams:
-            print('Aligning streams!')
+            print("Aligning streams!")
             synchro_file = concatenate_synchro_file_path(
                 brain_area,
                 implant_name,
@@ -141,9 +145,7 @@ def open_my_viewer(
             recording_spike = si.depth_order(recording_spike, flip=True)
 
         # Create ephyviewer source
-        source_ap = ephyviewer.SpikeInterfaceRecordingSource(
-            recording=recording_spike
-        )
+        source_ap = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_spike)
 
         # Align traces if possible
         if align_streams:
@@ -198,8 +200,6 @@ def open_my_viewer(
                 visible = False
             view2.by_channel_params[f"ch{c}", "visible"] = visible
             view2_.by_channel_params[f"ch{c}", "visible"] = visible
-
-        
 
         win.add_view(view2)
         win.add_view(view2_)

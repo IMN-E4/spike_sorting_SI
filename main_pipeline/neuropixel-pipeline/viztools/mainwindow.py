@@ -40,10 +40,11 @@ from ephyviewer.tools import ParamDialog
 from params_viz import path_to_recordings_database
 from launch_ephyviewer import open_my_viewer
 from path_handling_viz import concatenate_available_sorting_paths
+from utils import find_data_in_nas
 
 
 ################################################################################
-recordings_index = pd.read_csv(path_to_recordings_database)
+recordings_index = find_data_in_nas(root_to_data="/nas")
 display_columns = ["brain_area", "implant_name", "rec_name"]
 
 

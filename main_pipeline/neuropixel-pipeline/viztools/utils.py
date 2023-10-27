@@ -22,6 +22,7 @@ __status__ = "Production"
 
 # Standard imports
 from pathlib import Path
+import glob
 
 # Third party imports
 import spikeinterface.full as si
@@ -180,3 +181,29 @@ def identify_time_and_depth_range(sorting_folder):
         
 
     return rec_name_sorting, time_stamp, depth_range, time_range
+
+
+def find_data_in_nas(root_to_data="/nas"):
+
+    target_path = Path(root_to_data) / "Neuropixel_Recordings"
+    keyword = "*ap.meta"
+    df = pd.DataFrame(
+        columns=[
+            "root",
+            "rec_system",
+            "brain_area",
+            "implant_name",
+            "intermediate",
+            "rec_name"
+        ]
+    )
+
+    glob_path = target_path / f"**/{keyword}"
+    all_files = glob.glob(glob_path.as_posix(), recursive=True)
+    
+    ## Populate dataframe
+    for file in all_files:
+        split_parts = Path(file).parts[1:-1]
+        df.loc[len(df)] = split_parts
+    
+    return df

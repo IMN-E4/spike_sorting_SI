@@ -40,12 +40,13 @@ import pyqtgraph as pg
 from ephyviewer.tools import ParamDialog
 
 # Internal imports
-from params_viz import path_to_database
 from launch_ephyviewer import open_my_viewer
+from utils import find_data_in_nas
+from path_handling_viz import concatenate_available_sorting_paths
 
 
 ################################################################################
-main_index = pd.read_csv(path_to_database)
+main_index = find_data_in_nas(root_to_data="/nas")
 
 display_columns = ["rec_name", "node", "experiment"]
 
@@ -107,11 +108,11 @@ class MainWindow(QT.QMainWindow):
         elif level == 1:
             act = menu.addAction("Open viewer")
             act.key = items[0].key
-            act.triggered.connect(self.open_viewer)
+            act.triggered.connect(self.open_ephyviewer)
 
         menu.exec_(self.tree.viewport().mapToGlobal(position))
 
-    def open_viewer(self):
+    def open_ephyviewer(self):
         key = self.sender().key
         brain_area = main_index.loc[key, "brain_area"]
         implant_name = main_index.loc[key, "implant_name"]
@@ -121,11 +122,25 @@ class MainWindow(QT.QMainWindow):
 
         print(implant_name, rec_name)
 
+        ## add list of available sortings
+        all_available_sortings = ["None"]
+        all_available_sortings += concatenate_available_sorting_paths(
+            brain_area, implant_name, rec_name, node, experiment
+        )
+
         params = [
             {"name": "mic_spectrogram", "type": "bool", "value": True},
             {"name": "raw_recording", "type": "bool", "value": False},
             {"name": "bandpassed_recording", "type": "bool", "value": False},
-            {"name": "viz_sorting", "type": "bool", "value": False},
+            {"name": "bp_low_cut", "type": "int", "value": 300},
+            {"name": "bp_high_cut", "type": "int", "value": 6000},
+            {"name": "order_by_depth", "type": "bool", "value": False},
+            {
+                "name": "available_sortings",
+                "type": "list",
+                "values": all_available_sortings,
+            }
+
         ]
 
         dia = ParamDialog(params, title="Select streams")
@@ -133,6 +148,12 @@ class MainWindow(QT.QMainWindow):
             kwargs_streams = dia.get()
         else:
             return
+        
+        available_sortings = kwargs_streams.pop("available_sortings")
+        if available_sortings == "None":
+            kwargs_streams["viz_sorting"] = False
+        else:
+            kwargs_streams["viz_sorting"] = available_sortings
 
         w = open_my_viewer(
             brain_area,

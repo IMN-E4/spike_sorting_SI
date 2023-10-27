@@ -54,7 +54,11 @@ from utils import *
 
 ########### Preprocess & Checks ###########
 def get_preprocess_recording(
-    openephys_folder, working_folder, time_range=None, depth_range=None
+    openephys_folder,
+    working_folder,
+    experiment_number,
+    time_range=None,
+    depth_range=None,
 ):
     """Get preprocessed recording
 
@@ -91,19 +95,11 @@ def get_preprocess_recording(
         depth_range, (tuple, list, type(None))
     ), "depth_range must be type tuple, list or None"
 
-
-
     # Preprocessing
     preprocess_folder = working_folder / "preprocess_recording"
     if preprocess_folder.exists():
         print("Already preprocessed")
         rec_preprocess = si.load_extractor(preprocess_folder)
-        # This should be  unecessary!!!
-        # rec_preprocess.annotate(is_filtered=True)
-        print('ici')
-        print(rec_preprocess)
-        print(rec_preprocess.is_filtered())
-
 
     elif (working_folder / "preprocess.json").exists():
         rec_preprocess = si.load_extractor(working_folder / "preprocess.json")
@@ -112,27 +108,20 @@ def get_preprocess_recording(
         )
     else:
         print("Run/save preprocessing")
-        rec = read_rec(
+        with_probe_rec = read_rec(
             openephys_folder,
+            experiment_number,
             time_range,
             depth_range,
         )
-        # attach probe
-        with_probe_rec = add_probe_to_rec(rec)
-        print(with_probe_rec)
-                
+
         rec_preprocess = apply_preprocess(with_probe_rec)
         rec_preprocess.dump_to_json(working_folder / "preprocess.json")
         rec_preprocess = rec_preprocess.save(
             format="binary", folder=preprocess_folder, **job_kwargs
         )
-    
 
     print(rec_preprocess)
-
-    # probe_group = pi.ProbeGroup()
-    # probe_group.add_probe(rec_preprocess.get_probe())
-    # write_prb(working_folder / "arch.prb", probe_group)  # for lussac
 
     return rec_preprocess
 
@@ -261,9 +250,9 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
     This function will result in sorting and waveform folders.
 
     """
-    # assert isinstance(
-    #     rec_preprocess, (si.BinaryFolderRecording, si.ChannelSliceRecording)
-    # ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording or si.ChannelSliceRecording not {type(rec_preprocess)}"
+    assert isinstance(
+        rec_preprocess, (si.BinaryFolderRecording, si.ChannelSliceRecording)
+    ), f"rec_preprocess must be type spikeinterface BinaryFolderRecording or si.ChannelSliceRecording not {type(rec_preprocess)}"
     assert isinstance(
         working_folder, Path
     ), f"working_folder must be Path not {type(working_folder)}"
@@ -375,7 +364,7 @@ def run_postprocessing_sorting(
 
     for sorter_name, _ in sorters.items():
         sorting_clean_folder = Path(
-            str(sorting_clean_folder).replace("None", sorter_name)
+            str(sorting_clean_folder).replace("temp", sorter_name)
         )
         print(sorting_clean_folder)
 
@@ -409,7 +398,7 @@ def run_postprocessing_sorting(
                 **waveform_params,
                 **job_kwargs,
             )
-        
+
         # First round of merges (very strict - mostly for single units)
         first_potential_merges = si.get_potential_auto_merge(
             temp_query_we, **first_merge_params
@@ -428,7 +417,7 @@ def run_postprocessing_sorting(
                 **waveform_params,
                 **job_kwargs,
             )
-     
+
         else:
             we_clean_first = temp_query_we
             wf_temp_merges = None
@@ -446,13 +435,11 @@ def run_postprocessing_sorting(
         else:
             print("No units to merge in the second round")
 
-
         # delete temporary folder for waveforms
         if wf_temp_merges is not None and wf_temp_merges.exists():
             shutil.rmtree(wf_temp_merges)
         if wf_temp_query.exists():
             shutil.rmtree(wf_temp_query)
-
 
         # Update Wf and create report with clean sorting
         wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
@@ -466,7 +453,6 @@ def run_postprocessing_sorting(
             shutil.rmtree(wf_clean_folder)
         if report_clean_folder.exists():
             shutil.rmtree(report_clean_folder)
-
 
         clean_sorting = clean_sorting.save(folder=sorting_clean_folder)  # To NAS
 
@@ -589,7 +575,6 @@ def run_all(
     sorting=True,
     postproc=True,
     compare_sorters=False,
-    compute_alignment=False,
     time_stamp="default",
 ):
     """Overarching function to run pipeline
@@ -608,9 +593,6 @@ def run_all(
     compare_sorters: bool
         to run or not sorting comparison
 
-    compute_alignment: bool
-        to run or not alignment computation
-
     time_stamp: str
         time stamp to be used in folder name
 
@@ -624,25 +606,39 @@ def run_all(
     assert isinstance(
         compare_sorters, bool
     ), f"compare_sorters must be boolean not {type(compare_sorters)}"
-    assert isinstance(
-        compute_alignment, bool
-    ), f"compute_alignment must be boolean not {type(compute_alignment)}"
     assert isinstance(time_stamp, str), f"time_stamp must be str not {type(time_stamp)}"
 
     # Starts loop over recordings in recording list
     for (
         implant_name,
         rec_name,
+        node_number,
+        experiment_number,
         time_range,
         depth_range,
         drift_correction,
     ) in recording_list:
-        openephys_folder = concatenate_openephys_folder_path(implant_name, rec_name)
+        openephys_folder = concatenate_openephys_folder_path(
+            implant_name, rec_name, node_number
+        )
         cache_working_folder = concatenate_working_folder_path(
-            implant_name, rec_name, time_range, depth_range, time_stamp
+            implant_name,
+            rec_name,
+            node_number,
+            experiment_number,
+            time_range,
+            depth_range,
+            time_stamp,
         )
         NAS_sorting_folder = concatenate_clean_sorting_path(
-            implant_name, rec_name, time_range, depth_range, time_stamp, ""
+            implant_name,
+            rec_name,
+            node_number,
+            experiment_number,
+            time_range,
+            depth_range,
+            time_stamp,
+            "temp",
         )
 
         print(f"Data is coming from {openephys_folder}")
@@ -651,12 +647,14 @@ def run_all(
         if any([pre_check, sorting, postproc]):
             # Get relevant recording
             rec_preprocess = get_preprocess_recording(
-                openephys_folder, cache_working_folder, time_range, depth_range
+                openephys_folder,
+                cache_working_folder,
+                experiment_number,
+                time_range,
+                depth_range,
             )
-            print('yepyep')
-            print(rec_preprocess)
-            print(rec_preprocess.is_filtered())
 
+            print(rec_preprocess)
 
             if pre_check:
                 # Run pre-sorting checks
@@ -684,11 +682,10 @@ def run_all(
 
 
 if __name__ == "__main__":
-    pre_check = True
+    pre_check = False
     sorting = True
     postproc = True
     compare_sorters = False
-    compute_alignment = True
     time_stamp = "default"
 
     run_all(

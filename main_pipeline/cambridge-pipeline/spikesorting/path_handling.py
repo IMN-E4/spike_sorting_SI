@@ -31,7 +31,7 @@ import spikeinterface.full as si
 from params_CN import base_input_folder, base_sorting_cache_folder
 
 
-def concatenate_openephys_folder_path(implant_name, rec_name):
+def concatenate_openephys_folder_path(implant_name, rec_name, node_number):
     """Concatenates the spikeglx directory path
 
     Parameters
@@ -42,6 +42,9 @@ def concatenate_openephys_folder_path(implant_name, rec_name):
     rec_name: str
         recording name
 
+    node_number: int
+        node number
+
     Returns
     -------
     openephys_folder: Path
@@ -49,15 +52,18 @@ def concatenate_openephys_folder_path(implant_name, rec_name):
     """
     assert isinstance(implant_name, str),  f"implant_name must be type str not {type(implant_name)}"
     assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
-
-    openephys_folder = base_input_folder / implant_name / "Recordings" / rec_name
-
+    assert isinstance(node_number, int),  f"node_name must be type int not {type(node_number)}"
+    
+    openephys_folder = base_input_folder / implant_name / "Recordings" / rec_name / f"Record Node {node_number}"
+    
     return openephys_folder
 
 
 def concatenate_working_folder_path(
     implant_name,
     rec_name,
+    node_number, 
+    experiment_number,
     time_range,
     depth_range,
     time_stamp="default",
@@ -71,6 +77,12 @@ def concatenate_working_folder_path(
 
     rec_name: str
         recording name
+    
+    node_number: int
+        node number
+
+    experiment_number: int
+        experiment number
 
     time_range: None | list | tuple
         time range to slice recording
@@ -88,6 +100,8 @@ def concatenate_working_folder_path(
     """
     assert isinstance(implant_name, str),  f"implant_name must be type str not {type(implant_name)}"
     assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
+    assert isinstance(node_number, int),  f"node_name must be type int not {type(node_number)}"
+    assert isinstance(experiment_number, int), f"experiment_number must be type int not {type(experiment_number)}"
     assert isinstance(time_range, (tuple, list, type(None))), f"time_range must be type tuple, list or None not {type(time_range)}"
     assert isinstance(depth_range, (tuple, list, type(None))), f"depth_range must be type tuple, list or None not {type(depth_range)}"
     assert isinstance(time_stamp, str), f"time_stamp must be type str not {type(time_stamp)}"
@@ -102,6 +116,8 @@ def concatenate_working_folder_path(
             / implant_name
             / "sorting_cache"
             / f"{time_stamp}-{rec_name}-full"
+            / f"RecordNode{node_number}"
+            / f"experiment{experiment_number}"
         )
 
     else:
@@ -112,6 +128,8 @@ def concatenate_working_folder_path(
             / implant_name
             / "sorting_cache"
             / f"{time_stamp}-{rec_name}-{int(time_range[0])}to{int(time_range[1])}"
+            / f"RecordNode{node_number}"
+            / f"experiment{experiment_number}"
         )
 
     if depth_range is not None:
@@ -124,7 +142,7 @@ def concatenate_working_folder_path(
 
 
 def concatenate_clean_sorting_path(
-    implant_name, rec_name, time_range, depth_range, time_stamp, sorter_name
+    implant_name, rec_name, node_number, experiment_number, time_range, depth_range, time_stamp, sorter_name
 ):
     """Concatenates the CLEAN spike sorting folder path
 
@@ -135,6 +153,12 @@ def concatenate_clean_sorting_path(
 
     rec_name: str
         recording name
+    
+    node_number: int
+        node number
+
+    experiment_number: int
+        experiment number
 
     time_range: None | list | tuple
         time range to slice recording
@@ -155,6 +179,8 @@ def concatenate_clean_sorting_path(
     """
     assert isinstance(implant_name, str),  f"implant_name must be type str not {type(implant_name)}"
     assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
+    assert isinstance(node_number, int),  f"node_name must be type int not {type(node_number)}"
+    assert isinstance(experiment_number, int), f"experiment_number must be type int not {type(experiment_number)}"
     assert isinstance(time_range, (tuple, list, type(None))), f"time_range must be type tuple, list or None not {type(time_range)}"
     assert isinstance(depth_range, (tuple, list, type(None))), f"depth_range must be type tuple, list or None not {type(depth_range)}"
     assert isinstance(time_stamp, str), f"time_stamp must be type str not {type(time_stamp)}"
@@ -168,14 +194,14 @@ def concatenate_clean_sorting_path(
         name = f"{time_stamp}-{rec_name}-full"
 
         sorting_clean_folder = (
-            base_input_folder / implant_name / "Sortings_clean" / name
+            base_input_folder / implant_name / "Sortings_clean" / name / f"RecordNode{node_number}" / f"experiment{experiment_number}"
         )
 
     else:
         time_range = tuple(float(e) for e in time_range)
         name = f"{time_stamp}-{rec_name}-{int(time_range[0])}to{int(time_range[1])}"
         sorting_clean_folder = (
-            base_input_folder / implant_name / "Sortings_clean" / name
+            base_input_folder / implant_name / "Sortings_clean" / name / f"RecordNode{node_number}" / f"experiment{experiment_number}"
         )
 
     if depth_range is not None:

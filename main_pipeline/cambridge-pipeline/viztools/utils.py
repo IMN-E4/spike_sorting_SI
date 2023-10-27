@@ -22,12 +22,12 @@ __status__ = "Production"
 
 # Standard imports
 from pathlib import Path
-from shutil import copy
+import glob
 
 # Third party imports
 import spikeinterface.full as si
-import numpy as np
 from probeinterface import get_probe
+import pandas as pd
 
 # Internal imports
 from params_viz import probe_type, amp_type
@@ -59,3 +59,46 @@ def add_probe_to_rec(rec):
     # print(with_probe_rec.get_property('group'))
 
     return with_probe_rec
+
+def find_data_in_nas(root_to_data="/nas"):
+    """Find database in NAS
+
+    Parameters
+    ----------
+    root_to_data: str or Path
+        root folder where data is
+
+    Returns
+    -------
+    df: pandas DataFrame
+        database dataframe
+    """
+    
+    assert isinstance(
+        root_to_data, (str, Path)
+    ), f"root_to_data must be type str or Path not {type(root_to_data)}"
+    
+    target_path = Path(root_to_data) / "Cambridge_Recordings" / "**" / "Recordings"
+    keyword = "experiment*"
+    df = pd.DataFrame(
+        columns=[
+            "root",
+            "rec_system",
+            "brain_area",
+            "implant_name",
+            "intermediate",
+            "rec_name",
+            "node",
+            "experiment"
+        ]
+    )
+
+    glob_path = target_path / f"**/{keyword}"
+    all_files = glob.glob(glob_path.as_posix(), recursive=True)
+
+    ## Populate dataframe
+    for file in all_files:
+        split_parts = Path(file).parts[1:]
+        df.loc[len(df)] = split_parts
+
+    return df

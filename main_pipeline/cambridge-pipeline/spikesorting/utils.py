@@ -138,7 +138,7 @@ def slice_rec_time(rec, time_range):
 
     Parameters
     ----------
-    rec: si.OpenEphysRecordingExtractor
+    rec: si.ChannelSliceRecording
         recording to apply preprocessing on
 
     time_range: None | list | tuple
@@ -150,8 +150,8 @@ def slice_rec_time(rec, time_range):
         time-sliced recording
     """
     assert isinstance(
-        rec, si.OpenEphysBinaryRecordingExtractor
-    ), f"rec must be type spikeinterface BinaryFolderRecording not {type(rec)}"
+        rec, si.ChannelSliceRecording
+    ), f"rec must be type spikeinterface ChannelSliceRecording not {type(rec)}"
     assert isinstance(
         time_range, (tuple, list, type(None))
     ), f"time_range must be type tuple, list or None not {type(time_range)}"
@@ -171,7 +171,7 @@ def slice_rec_depth(rec, depth_range):
 
     Parameters
     ----------
-    rec: spikeinterface OpenEphysBinaryRecordingExtractor
+    rec: spikeinterface ChannelSliceRecording or FrameSliceRecording
         recording to apply preprocessing on
 
     depth_range: None | list | tuple
@@ -183,8 +183,8 @@ def slice_rec_depth(rec, depth_range):
         depth-sliced recording
     """
     assert isinstance(
-        rec, si.OpenEphysBinaryRecordingExtractor
-    ), f"rec must be type spikeinterface OpenEphysBinaryRecordingExtractor not {type(rec)}"
+        rec, (si.ChannelSliceRecording, si.FrameSliceRecording)
+    ), f"rec must be type spikeinterface ChannelSliceRecording or FrameSliceRecording not {type(rec)}"
     assert isinstance(
         depth_range, (tuple, list, type(None))
     ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
@@ -197,7 +197,7 @@ def slice_rec_depth(rec, depth_range):
     return sliced_rec
 
 
-def read_rec(openephys_folder, time_range, depth_range):
+def read_rec(openephys_folder, experiment_number, time_range, depth_range):
     """Read recording
 
     Parameters
@@ -214,8 +214,8 @@ def read_rec(openephys_folder, time_range, depth_range):
 
     Returns
     -------
-    rec: spikeinterface object
-        time/depth corrected rec
+    with_probe_rec: spikeinterface object
+        time/depth corrected rec with probe attached
     """
     assert isinstance(openephys_folder, Path), f"openephys_folder must be Path not {type(openephys_folder)}"
     assert isinstance(
@@ -225,15 +225,18 @@ def read_rec(openephys_folder, time_range, depth_range):
         depth_range, (tuple, list, type(None))
     ), f"depth_range must be type tuple, list or None not {type(depth_range)}"
 
-    rec = si.read_openephys(openephys_folder)
+    rec = si.read_openephys(openephys_folder, block_index=experiment_number-1)
+
+    # attach probe
+    with_probe_rec = add_probe_to_rec(rec)
 
     if time_range is not None:
-        rec = slice_rec_time(rec, time_range)
+        with_probe_rec = slice_rec_time(with_probe_rec, time_range)
 
-    elif depth_range is not None:
-        rec = slice_rec_depth(rec, depth_range)
+    if depth_range is not None:
+        with_probe_rec = slice_rec_depth(with_probe_rec, depth_range)
 
-    return rec
+    return with_probe_rec
 
 def propagate_params(original_file_path, output_path):
 

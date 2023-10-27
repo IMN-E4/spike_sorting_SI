@@ -19,7 +19,7 @@ __status__ = (
 ####################
 
 # Standard imports  ### (Put here built-in libraries - https://docs.python.org/3/library/)
-from pathlib import Path
+from pathlib import PosixPath
 
 # Third party imports ### (Put here third-party libraries e.g. pandas, numpy)
 import spikeinterface.full as si
@@ -39,7 +39,10 @@ def open_my_viewer(brain_area,
                    raw_recording=True,
                    mic_spectrogram=True,
                    bandpassed_recording=False,
-                   viz_sorting=False,
+                   bp_low_cut=None,
+                   bp_high_cut=None,
+                   order_by_depth=False,
+                   viz_sorting=None,
                    parent=None):
     data_folder = (
         base_folder / f"{brain_area}/{implant_name}/Recordings/{rec_name}/{node}/"
@@ -82,7 +85,7 @@ def open_my_viewer(brain_area,
             recording = add_probe_to_rec(recording)
             recording = si.depth_order(recording, flip=True)
         filtered_recording = si.bandpass_filter(
-            recording, bandpass_range[0], bandpass_range[1]
+            recording, freq_min=bp_low_cut, freq_max=bp_high_cut
         )
         sig_source2 = ephyviewer.SpikeInterfaceRecordingSource(
             recording=filtered_recording
@@ -92,24 +95,14 @@ def open_my_viewer(brain_area,
         view2.params["scale_mode"] = "by_channel"
         view2.params["display_labels"] = True
         view2.auto_scale()
-
-        win.add_view(view2)
-
         view3 = ephyviewer.TimeFreqViewer(
             source=sig_source2, name="timefreq sig bandpassed"
         )
         win.add_view(view3)
+        win.add_view(view2, tabify_with="timefreq sig bandpassed")
 
-    if viz_sorting:
-        dia = QT.QFileDialog(
-            fileMode=QT.QFileDialog.Directory, acceptMode=QT.QFileDialog.AcceptOpen
-        )
-        dia.setViewMode(QT.QFileDialog.Detail)
-        if dia.exec_():
-            folder_names = dia.selectedFiles()
-            sorting_folder = folder_names[0]
-        else:
-            return
+    if type(viz_sorting) == PosixPath:
+        sorting_folder = viz_sorting
 
         sorting_data = si.load_extractor(sorting_folder)
         all_spikes = []

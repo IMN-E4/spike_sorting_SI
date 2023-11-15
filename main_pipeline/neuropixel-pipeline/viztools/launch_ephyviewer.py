@@ -105,9 +105,7 @@ def open_my_viewer(
 
         # Create spike trains
         if align_streams:
-            t_start = synchro["b"]
-            t_start = recording_spike.get_times()[0]
-            t_start = recording_spike.get_time_info()["t_start"]
+            sr = recording_spike.get_sampling_frequency() / synchro["a"]
 
         all_spikes = []
         order_units = sorting_data.unit_ids
@@ -115,12 +113,14 @@ def open_my_viewer(
             order_units = order_units[::-1]
 
         for unit_id in order_units:
-            spike_times = sorting_data.get_unit_spike_train(
-                unit_id=unit_id, return_times=True
-            )
-
             if align_streams:
-                spike_times = spike_times + t_start
+                spike_times = sorting_data.get_unit_spike_train(unit_id=unit_id) / sr + synchro["b"]
+            
+            else:           
+                spike_times = sorting_data.get_unit_spike_train(
+                    unit_id=unit_id, return_times=True
+                )
+            
 
             all_spikes.append({"time": spike_times, "name": f"Unit#{unit_id}"})
         spike_source = ephyviewer.InMemorySpikeSource(all_spikes)

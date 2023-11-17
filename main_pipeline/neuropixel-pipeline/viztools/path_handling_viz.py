@@ -123,7 +123,7 @@ def concatenate_synchro_file_path(
     return synchro_file
 
 
-def concatenate_available_sorting_paths(brain_area, implant_name, rec_name):
+def concatenate_available_sorting_paths(brain_area, implant_name, rec_name, target):
     """Concatenates the sorting paths
 
     Parameters
@@ -147,10 +147,17 @@ def concatenate_available_sorting_paths(brain_area, implant_name, rec_name):
     ), f"implant_name must be type str not {type(implant_name)}"
     assert isinstance(rec_name, str), f"rec_name must be type str not {type(rec_name)}"
 
-    main_path = base_folder / brain_area / implant_name / "Sortings_clean"
+    if target == 'NAS':
+        main_path = base_folder / brain_area / implant_name / "Sortings_clean"
+        sorting_folders = list(main_path.glob(f"*-{rec_name}-*/**/*sorting*"))
+        sorting_folders = [folder.parent for folder in sorting_folders]
 
-    sorting_folders = list(main_path.glob(f"*-{rec_name}-*/**/*sorting*"))
-
-    sorting_folders = [folder.parent for folder in sorting_folders]
+    elif target == 'CACHE':
+        main_path_data_1 = Path("/data1/Neuropixel_recordings/") / brain_area / implant_name / "sorting_cache"
+        main_path_data_2 = Path("/data2/Neuropixel_recordings/") / brain_area / implant_name / "sorting_cache"
+        sorting_folders_data1 = list(main_path_data_1.glob(f"*-{rec_name}-*/**/waveforms_clean_*"))
+        sorting_folders_data2 = list(main_path_data_2.glob(f"*-{rec_name}-*/**/waveforms_clean_*"))
+        sorting_folders_data2.extend(sorting_folders_data1)
+        sorting_folders = sorting_folders_data2    
 
     return sorting_folders

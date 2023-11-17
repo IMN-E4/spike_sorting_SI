@@ -21,7 +21,7 @@ __status__ = "Production"
 # To do   #
 ###########
 ## add video!
-## add SIGUI!
+## test further SIGUI
 
 
 ####################
@@ -35,6 +35,8 @@ __status__ = "Production"
 from ephyviewer.myqt import QT
 import pyqtgraph as pg
 from ephyviewer.tools import ParamDialog
+import spikeinterface_gui
+import spikeinterface.full as si
 
 # Internal imports
 from launch_ephyviewer import open_my_viewer
@@ -102,9 +104,15 @@ class MainWindow(QT.QMainWindow):
         if level == 0:
             return
         elif level == 1:
-            act = menu.addAction("Open viewer")
+            # Option 1
+            act = menu.addAction("Open Ephyviewer")
             act.key = items[0].key
             act.triggered.connect(self.open_ephyviewer)
+
+            # Option 2
+            act = menu.addAction("Open SIGUI")
+            act.key = items[0].key
+            act.triggered.connect(self.open_sigui_viewer)
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
@@ -118,7 +126,7 @@ class MainWindow(QT.QMainWindow):
         ## add list of available sortings
         all_available_sortings = ["None"]
         all_available_sortings += concatenate_available_sorting_paths(
-            brain_area, implant_name, rec_name
+            brain_area, implant_name, rec_name, target="NAS"
         )
 
         params = [
@@ -132,7 +140,7 @@ class MainWindow(QT.QMainWindow):
                 "name": "available_sortings",
                 "type": "list",
                 "values": all_available_sortings,
-            }
+            },
         ]
 
         dia = ParamDialog(params, title="Select streams")
@@ -151,34 +159,56 @@ class MainWindow(QT.QMainWindow):
             brain_area=brain_area,
             implant_name=implant_name,
             rec_name=rec_name,
-            parent=self, # this needs to be there!
+            parent=self,  # this needs to be there!
             **kwargs_streams,
         )
 
         w.show()
         w.setWindowTitle(implant_name + " " + rec_name)
-        self.all_viewers.append(w) # do the same list thing to the SIGUI function, ohterwise it breaks
+        self.all_viewers.append(
+            w
+        )  # do the same list thing to the SIGUI function, ohterwise it breaks
 
         for w in [w for w in self.all_viewers if w.isVisible()]:
             self.all_viewers.remove(w)
 
-    # def open_sigui_viewer(self):
-          
-    #       # give me corect we to load wf extractor: which sorter, etc. helper function to catch this.
-    #     #   brain_area=brain_area,
-    #     #     implant_name=implant_name,
-    #     #     rec_name=rec_name,
-    #     #     parent=self, # this needs to be there!
-    #     #     **kwargs_streams
+    def open_sigui_viewer(self):
+        key = self.sender().key
+        brain_area = recordings_index.loc[key, "brain_area"]
+        implant_name = recordings_index.loc[key, "implant_name"]
+        rec_name = recordings_index.loc[key, "rec_name"]
 
-    #     w = spikeinterface_gui.MainWindow(we, parent=self)
+        ## add list of available sortings
+        all_available_sortings = ["None"]
+        all_available_sortings += concatenate_available_sorting_paths(
+            brain_area, implant_name, rec_name, target="CACHE"
+        )
+        params = [
+            {
+                "name": "available_sortings",
+                "type": "list",
+                "values": all_available_sortings,
+            }
+        ]
 
-    #     w.show()
-    #     w.setWindowTitle(implant_name + " " + rec_name)
-    #     self.all_viewers.append(w) # do the same list thing to the SIGUI function, ohterwise it breaks
+        dia = ParamDialog(params, title="Select sorting")
+        if dia.exec():
+            kwargs_streams = dia.get()
+        else:
+            return
 
-    #     for w in [w for w in self.all_viewers if w.isVisible()]:
-    #         self.all_viewers.remove(w)
+        wf_folder = kwargs_streams.pop("available_sortings")
+
+        we = si.WaveformExtractor.load_from_folder(wf_folder)
+        w = spikeinterface_gui.MainWindow(we, parent=self)
+
+        w.show()
+        w.setWindowTitle(implant_name + " " + rec_name)
+        self.all_viewers.append(w)
+
+        for w in [w for w in self.all_viewers if w.isVisible()]:
+            self.all_viewers.remove(w)
+
 
 if __name__ == "__main__":
     app = pg.mkQApp()

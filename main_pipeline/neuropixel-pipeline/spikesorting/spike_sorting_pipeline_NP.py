@@ -53,7 +53,7 @@ from path_handling import (
     concatenate_spikeglx_folder_path,
     concatenate_synchro_file_path,
     concatenate_working_folder_path,
-    concatenate_clean_sorting_path,
+    concatenate_clean_sorting_path_in_NAS,
 )
 from utils import *
 
@@ -385,6 +385,8 @@ def run_postprocessing_sorting(
         )
         print(f"NAS data is saved at {sorting_clean_NAS_folder}")
 
+        sorting_clean_CACHE_folder = working_folder / f"sorting_clean_{sorter_name}"
+
         # Read existing waveforms
         wf_folder = working_folder / f"waveforms_{sorter_name}"
         we = si.WaveformExtractor.load_from_folder(wf_folder)
@@ -452,8 +454,12 @@ def run_postprocessing_sorting(
        
         # Delete tree before recomputing
         if sorting_clean_NAS_folder.exists():
-            print("remove exists clean", sorting_clean_NAS_folder)
+            print("remove existing clean sorting in NAS", sorting_clean_NAS_folder)
             shutil.rmtree(sorting_clean_NAS_folder)
+        
+        if sorting_clean_CACHE_folder.exists():
+            print("remove existing clean sorting in CACHE", sorting_clean_CACHE_folder)
+            shutil.rmtree(sorting_clean_CACHE_folder)
 
         # Update Wf and create report with clean sorting
         wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
@@ -481,7 +487,7 @@ def run_postprocessing_sorting(
         ordered_unit_ids = clean_sorting.unit_ids[order]
         clean_sorting = clean_sorting.select_units(ordered_unit_ids)
         clean_sorting = clean_sorting.save(folder=sorting_clean_NAS_folder)  # To NAS
-        clean_sorting = clean_sorting.save(folder=working_folder / f"sorting_clean_{sorter_name}")  # To cache
+        clean_sorting = clean_sorting.save(folder=sorting_clean_CACHE_folder)  # To cache
 
         # Compute Wf and report for cleaned sorting
         we_clean = si.extract_waveforms(
@@ -801,7 +807,7 @@ def run_all(
         cache_working_folder = concatenate_working_folder_path(
             implant_name, rec_name, time_range, depth_range, time_stamp
         )
-        NAS_sorting_folder = concatenate_clean_sorting_path(
+        NAS_sorting_folder = concatenate_clean_sorting_path_in_NAS(
             implant_name, rec_name, time_range, depth_range, time_stamp, "temp"
         )
 

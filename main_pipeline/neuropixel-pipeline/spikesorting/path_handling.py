@@ -132,10 +132,10 @@ def concatenate_working_folder_path(
     return working_folder
 
 
-def concatenate_clean_sorting_path(
+def concatenate_clean_sorting_path_in_NAS(
     implant_name, rec_name, time_range, depth_range, time_stamp, sorter_name
 ):
-    """Concatenates the CLEAN spike sorting folder path
+    """Concatenates the CLEAN spike sorting folder path IN NAS
 
     Parameters
     ----------
@@ -159,7 +159,7 @@ def concatenate_clean_sorting_path(
 
     Returns
     -------
-    sorting_clean_folder: Path
+    sorting_clean_folder_in_NAS: Path
         path for saving clean sorting
     """
 
@@ -206,9 +206,9 @@ def concatenate_clean_sorting_path(
     else:
         print(f"Using all channels")
 
-    sorting_clean_folder = sorting_clean_folder / sorter_name
+    sorting_clean_folder_in_NAS = sorting_clean_folder / sorter_name
 
-    return sorting_clean_folder
+    return sorting_clean_folder_in_NAS
 
 
 def concatenate_synchro_file_path(implant_name, rec_name, time_range, time_stamp):

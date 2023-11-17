@@ -38,8 +38,8 @@
 ## FOR TEST DATA
 recording_list = [
        ('Imp_29_11_2022', 'Rec_2_30_11_2022_morning_nap_g0_from_0_to_300s', None, None, False),
-       ('Imp_29_11_2022', 'Rec_2_30_11_2022-morning_nap_g0_from_0_to_300s', [0,150], None, False),
-       ('Imp_29_11_2022', 'Rec_2_30_11_2022-morning_nap_g0_from_0_to_300s', None, [1,3000], False),
+       ('Imp_29_11_2022', 'Rec_2_30_11_2022_morning_nap_g0_from_0_to_300s', [0,150], None, False),
+       ('Imp_29_11_2022', 'Rec_2_30_11_2022_morning_nap_g0_from_0_to_300s', None, [1,3000], False),
        ('Imp_29_11_2022', 'Rec_2_30_11_2022_morning_nap_g0_from_0_to_300s', [0,150], [1,3000], False)       
 ]
 

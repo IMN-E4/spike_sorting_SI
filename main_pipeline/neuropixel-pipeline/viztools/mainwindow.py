@@ -21,6 +21,7 @@ __status__ = "Production"
 # To do   #
 ###########
 ## add video!
+## add SIGUI!
 
 
 ####################
@@ -31,7 +32,6 @@ __status__ = "Production"
 
 
 # Third party imports
-import pandas as pd
 from ephyviewer.myqt import QT
 import pyqtgraph as pg
 from ephyviewer.tools import ParamDialog
@@ -151,17 +151,34 @@ class MainWindow(QT.QMainWindow):
             brain_area=brain_area,
             implant_name=implant_name,
             rec_name=rec_name,
-            parent=self,
+            parent=self, # this needs to be there!
             **kwargs_streams,
         )
 
         w.show()
         w.setWindowTitle(implant_name + " " + rec_name)
-        self.all_viewers.append(w)
+        self.all_viewers.append(w) # do the same list thing to the SIGUI function, ohterwise it breaks
 
         for w in [w for w in self.all_viewers if w.isVisible()]:
             self.all_viewers.remove(w)
 
+    # def open_sigui_viewer(self):
+          
+    #       # give me corect we to load wf extractor: which sorter, etc. helper function to catch this.
+    #     #   brain_area=brain_area,
+    #     #     implant_name=implant_name,
+    #     #     rec_name=rec_name,
+    #     #     parent=self, # this needs to be there!
+    #     #     **kwargs_streams
+
+    #     w = spikeinterface_gui.MainWindow(we, parent=self)
+
+    #     w.show()
+    #     w.setWindowTitle(implant_name + " " + rec_name)
+    #     self.all_viewers.append(w) # do the same list thing to the SIGUI function, ohterwise it breaks
+
+    #     for w in [w for w in self.all_viewers if w.isVisible()]:
+    #         self.all_viewers.remove(w)
 
 if __name__ == "__main__":
     app = pg.mkQApp()

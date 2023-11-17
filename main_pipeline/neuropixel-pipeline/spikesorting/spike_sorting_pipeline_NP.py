@@ -17,8 +17,11 @@ __status__ = "Production"
 
 
 ####################
-# Review History   #
+# TO DO            #
 ####################
+
+# 1. Add bad channel detection
+# 2. Consider adding unit property [brain area]?
 
 
 ####################
@@ -297,7 +300,7 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
             )
             print(sorting)
             sorting = sorting.save(
-                format="npz", folder=working_folder / f"sorting_{sorter_name}"
+                format="numpy_folder", folder=working_folder / f"sorting_{sorter_name}"
             )
 
     # Extract waveforms and compute some metrics
@@ -324,7 +327,7 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
 
 ########### Post-processing ###########
 def run_postprocessing_sorting(
-    rec_preprocess, working_folder, sorting_clean_folder, drift_correction=False
+    rec_preprocess, working_folder, sorting_clean_NAS_folder, drift_correction=False
 ):
     """Run post-processing on different sorters and params
     The idea is to have bad units removed according to metrics, and run auto-merging of units.
@@ -338,7 +341,7 @@ def run_postprocessing_sorting(
     working_folder: path
         path to working folder
 
-    sorting_clean_folder: Path
+    sorting_clean_NAS_folder: Path
         path to sorting clean folder
 
     drift_correction: boolean
@@ -356,8 +359,8 @@ def run_postprocessing_sorting(
         working_folder, Path
     ), f"working_folder must be Path not {type(working_folder)}"
     assert isinstance(
-        sorting_clean_folder, Path
-    ), f"sorting_clean_folder must be Path not {type(sorting_clean_folder)}"
+        sorting_clean_NAS_folder, Path
+    ), f"sorting_clean_NAS_folder must be Path not {type(sorting_clean_NAS_folder)}"
     assert isinstance(
         drift_correction, bool
     ), f"drift_correction must be boolean not {type(drift_correction)}"
@@ -377,10 +380,10 @@ def run_postprocessing_sorting(
         rec_preprocess = correct_drift(rec_preprocess, working_folder)
 
     for sorter_name, _ in sorters.items():
-        sorting_clean_folder = Path(
-            str(sorting_clean_folder).replace("temp", sorter_name)
+        sorting_clean_NAS_folder = Path(
+            str(sorting_clean_NAS_folder).replace("temp", sorter_name)
         )
-        print(f"NAS data is saved at {sorting_clean_folder}")
+        print(f"NAS data is saved at {sorting_clean_NAS_folder}")
 
         # Read existing waveforms
         wf_folder = working_folder / f"waveforms_{sorter_name}"
@@ -446,10 +449,11 @@ def run_postprocessing_sorting(
         else:
             print("No units to merge in the second round")
 
+       
         # Delete tree before recomputing
-        if sorting_clean_folder.exists():
-            print("remove exists clean", sorting_clean_folder)
-            shutil.rmtree(sorting_clean_folder)
+        if sorting_clean_NAS_folder.exists():
+            print("remove exists clean", sorting_clean_NAS_folder)
+            shutil.rmtree(sorting_clean_NAS_folder)
 
         # Update Wf and create report with clean sorting
         wf_clean_folder = working_folder / f"waveforms_clean_{sorter_name}"
@@ -460,8 +464,24 @@ def run_postprocessing_sorting(
             shutil.rmtree(wf_clean_folder)
         if report_clean_folder.exists():
             shutil.rmtree(report_clean_folder)
+        
+        ## Order units by depth
+        # Compute Wf and report for cleaned sorting
+        we_tmp = si.extract_waveforms(
+            rec_preprocess,
+            clean_sorting,
+            folder=None,
+            mode='memory',
+            **waveform_params,
+            **job_kwargs,
+        )
 
-        clean_sorting = clean_sorting.save(folder=sorting_clean_folder)  # To NAS
+        unit_locations = si.compute_unit_locations(we_tmp, method='monopolar_triangulation')
+        order = np.argsort(unit_locations[:,1])
+        ordered_unit_ids = clean_sorting.unit_ids[order]
+        clean_sorting = clean_sorting.select_units(ordered_unit_ids)
+        clean_sorting = clean_sorting.save(folder=sorting_clean_NAS_folder)  # To NAS
+        clean_sorting = clean_sorting.save(folder=working_folder / f"sorting_clean_{sorter_name}")  # To cache
 
         # Compute Wf and report for cleaned sorting
         we_clean = si.extract_waveforms(
@@ -516,8 +536,11 @@ def run_postprocessing_sorting(
         df.to_csv(csv_metrics_path, index=True)
 
         # Save params to cache and NAS
-        propagate_params(params_location, sorting_clean_folder)
+        propagate_params(params_location, sorting_clean_NAS_folder)
         propagate_params(params_location, report_clean_folder)
+
+        # Propagate report folder to NAS
+        shutil.copytree(src=report_clean_folder, dst=sorting_clean_NAS_folder/'report')
 
 
 def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
@@ -664,7 +687,7 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
 
 
 ########### Sorting comparison ###########
-def compare_sorter_cleaned(working_folder, sorting_clean_folder):
+def compare_sorter_cleaned(working_folder, sorting_clean_NAS_folder):
     """Comparison between sorters
 
     Parameters
@@ -672,7 +695,7 @@ def compare_sorter_cleaned(working_folder, sorting_clean_folder):
     working_folder: path
         path to working folder
 
-    sorting_clean_folder: Path
+    sorting_clean_NAS_folder: Path
         path to sorting clean folder
 
     Returns
@@ -684,15 +707,15 @@ def compare_sorter_cleaned(working_folder, sorting_clean_folder):
         working_folder, Path
     ), f"working_folder must be Path not {type(working_folder)}"
     assert isinstance(
-        sorting_clean_folder, Path
-    ), f"sorting_clean_folder must be Path not {type(sorting_clean_folder)}"
+        sorting_clean_NAS_folder, Path
+    ), f"sorting_clean_NAS_folder must be Path not {type(sorting_clean_NAS_folder)}"
 
     sortings = []
     for sorter_name, _ in sorters.items():
-        sorting_clean_folder = Path(
-            str(sorting_clean_folder).replace("temp", sorter_name)
+        sorting_clean_NAS_folder = Path(
+            str(sorting_clean_NAS_folder).replace("temp", sorter_name)
         )
-        sorting = si.load_extractor(sorting_clean_folder)
+        sorting = si.load_extractor(sorting_clean_NAS_folder)
         sortings.append(sorting)
 
     sorter_names = list(sorters.keys())
@@ -726,7 +749,7 @@ def run_all(
     sorting=True,
     postproc=True,
     compare_sorters=False,
-    compute_alignment=False,
+    compute_alignment=True,
     time_stamp="default",
 ):
     """Overarching function to run pipeline
@@ -811,7 +834,7 @@ def run_all(
                 run_postprocessing_sorting(
                     rec_preprocess=rec_preprocess,
                     working_folder=cache_working_folder,
-                    sorting_clean_folder=NAS_sorting_folder,
+                    sorting_clean_NAS_folder=NAS_sorting_folder,
                     drift_correction=drift_correction,
                 )
 

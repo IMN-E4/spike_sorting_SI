@@ -149,7 +149,7 @@ def concatenate_available_sorting_paths(brain_area, implant_name, rec_name):
 
     main_path = base_folder / brain_area / implant_name / "Sortings_clean"
 
-    sorting_folders = list(main_path.glob(f"*-{rec_name}-*/**/sorting_cached.npz"))
+    sorting_folders = list(main_path.glob(f"*-{rec_name}-*/**/*sorting*"))
 
     sorting_folders = [folder.parent for folder in sorting_folders]
 

@@ -8,9 +8,13 @@ from pathlib import Path
 ####################
 # Base paths       #
 ####################
-base_input_folder = Path("/nas/Neuropixel_Recordings/AreaX-LMAN/")
+# brain_area = 'AreaX-LMAN'
+brain_area = 'Data_For_Testing'
+# brain_area = 'Cerebellum'
 
-base_sorting_cache_folder = Path("/data1/Neuropixel_recordings/")
+base_input_folder = Path("/nas/Neuropixel_Recordings/") / brain_area
+
+base_sorting_cache_folder = Path("/data1/Neuropixel_recordings/") / brain_area
 
 
 ####################
@@ -105,7 +109,7 @@ peak_detection_params = {
     "method": "locally_exclusive",
     "peak_sign": peak_sign,
     "detect_threshold": 5.0,
-    "local_radius_um": 150,
+    "radius_um": 150,
 }
 
 unit_location_params = {
@@ -124,7 +128,7 @@ peak_location_params = {
     "ms_before": 1.0,
     "ms_after": 1.0,
     "method": "monopolar_triangulation",
-    "local_radius_um": 50.0,
+    "radius_um": 50.0,
     "max_distance_um": 100,
     "optimizer": "minimize_with_log_penality",
 }

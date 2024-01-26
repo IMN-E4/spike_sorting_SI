@@ -158,7 +158,7 @@ def plot_peaks_activity(rec_preprocess, peaks, figure_folder):
     fig, axs = plt.subplots(ncols=2)
     for number in range(2):
         ax = axs[number]
-        si.plot_peak_activity_map(
+        si.plot_peak_activity(
             rec_preprocess,
             peaks,
             with_contact_color=False,

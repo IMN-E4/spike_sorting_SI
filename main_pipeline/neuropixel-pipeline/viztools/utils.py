@@ -182,6 +182,7 @@ def identify_time_and_depth_range(sorting_folder):
     time_range = None
 
     split_parts = sorting_folder.parts[1:]
+
     for part in split_parts:
         if "depth" in part:
             depth = part.split("_")
@@ -189,7 +190,8 @@ def identify_time_and_depth_range(sorting_folder):
             depth_end = int(depth[3])
             depth_range = (depth_beg, depth_end)
 
-        if "Rec_" in part:
+        if ("Rec_" in part) or ("session" in part):
+            print('here')
             split = part.split("-")
             time_stamp = "-".join(split[:2])
             rec_name_sorting = split[2]

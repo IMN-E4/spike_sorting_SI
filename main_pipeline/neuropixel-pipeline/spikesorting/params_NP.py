@@ -8,12 +8,12 @@ from pathlib import Path
 ####################
 # Base paths       #
 ####################
-# brain_area = 'AreaX-LMAN'
-brain_area = 'Data_For_Testing'
+brain_area = 'AreaX-LMAN'
+# brain_area = 'Data_For_Testing'
 # brain_area = 'Cerebellum'
+# brain_area = 'Anindita-XLMAN-JUV'
 
 base_input_folder = Path("/nas/Neuropixel_Recordings/") / brain_area
-
 base_sorting_cache_folder = Path("/data1/Neuropixel_recordings/") / brain_area
 
 

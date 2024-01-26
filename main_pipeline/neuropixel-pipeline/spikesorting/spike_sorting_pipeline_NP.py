@@ -47,7 +47,7 @@ import pandas as pd
 
 # Internal imports
 from params_NP import *
-from recording_list_NP import recording_list
+from recording_list_NP import recording_list, histology_information
 from myfigures import *
 from path_handling import (
     concatenate_spikeglx_folder_path,
@@ -58,7 +58,7 @@ from path_handling import (
 from utils import *
 
 
-########### Preprocess & Checks ###########
+################################################################## Preprocess & Checks ##################################################################
 def get_preprocess_recording(
     spikeglx_folder,
     working_folder,
@@ -136,11 +136,6 @@ def get_preprocess_recording(
         )
 
     print(rec_preprocess)
-
-    # probe_group = pi.ProbeGroup()
-    # probe_group.add_probe(rec_preprocess.get_probe())
-    # write_prb(working_folder / "arch.prb", probe_group)  # for lussac
-
     return rec_preprocess
 
 
@@ -249,7 +244,7 @@ def run_pre_sorting_checks(rec_preprocess, working_folder):
     fig.savefig(figure_folder / "motions.png")
 
 
-########### Run sorting ###########
+####################################################### Run sorting #######################################################
 def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False):
     """Run sorting with different sorters and params
 
@@ -325,7 +320,7 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
         si.compute_quality_metrics(we, load_if_exists=False, metric_names=metrics_list)
 
 
-########### Post-processing ###########
+####################################################### Post-processing ##################################################################
 def run_postprocessing_sorting(
     rec_preprocess, working_folder, sorting_clean_NAS_folder, drift_correction=False
 ):
@@ -334,7 +329,6 @@ def run_postprocessing_sorting(
 
     Parameters
     ----------
-
     rec_preprocess: spikeinterface obj
         recording object
 
@@ -451,12 +445,11 @@ def run_postprocessing_sorting(
         else:
             print("No units to merge in the second round")
 
-       
         # Delete tree before recomputing
         if sorting_clean_NAS_folder.exists():
             print("remove existing clean sorting in NAS", sorting_clean_NAS_folder)
             shutil.rmtree(sorting_clean_NAS_folder)
-        
+
         if sorting_clean_CACHE_folder.exists():
             print("remove existing clean sorting in CACHE", sorting_clean_CACHE_folder)
             shutil.rmtree(sorting_clean_CACHE_folder)
@@ -470,24 +463,28 @@ def run_postprocessing_sorting(
             shutil.rmtree(wf_clean_folder)
         if report_clean_folder.exists():
             shutil.rmtree(report_clean_folder)
-        
+
         ## Order units by depth
         # Compute Wf and report for cleaned sorting
         we_tmp = si.extract_waveforms(
             rec_preprocess,
             clean_sorting,
             folder=None,
-            mode='memory',
+            mode="memory",
             **waveform_params,
             **job_kwargs,
         )
 
-        unit_locations = si.compute_unit_locations(we_tmp, method='monopolar_triangulation')
-        order = np.argsort(unit_locations[:,1])
+        unit_locations = si.compute_unit_locations(
+            we_tmp, method="monopolar_triangulation"
+        )
+        order = np.argsort(unit_locations[:, 1])
         ordered_unit_ids = clean_sorting.unit_ids[order]
         clean_sorting = clean_sorting.select_units(ordered_unit_ids)
         clean_sorting = clean_sorting.save(folder=sorting_clean_NAS_folder)  # To NAS
-        clean_sorting = clean_sorting.save(folder=sorting_clean_CACHE_folder)  # To cache
+        clean_sorting = clean_sorting.save(
+            folder=sorting_clean_CACHE_folder
+        )  # To cache
 
         # Compute Wf and report for cleaned sorting
         we_clean = si.extract_waveforms(
@@ -546,7 +543,9 @@ def run_postprocessing_sorting(
         propagate_params(params_location, report_clean_folder)
 
         # Propagate report folder to NAS
-        shutil.copytree(src=report_clean_folder, dst=sorting_clean_NAS_folder/'report')
+        shutil.copytree(
+            src=report_clean_folder, dst=sorting_clean_NAS_folder / "report"
+        )
 
 
 def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
@@ -599,6 +598,8 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
 
     # Work on NIDQ stream
     pulse_nidq = rec_nidq.get_traces(channel_ids=["nidq#XA1"])
+    # pulse_nidq = rec_nidq.get_traces(channel_ids=["nidq#XD0"])  # Anindita's data
+
     pulse_nidq = pulse_nidq[:, 0]
     thresh_nidq = (np.max(pulse_nidq) + np.min(pulse_nidq)) / 2
 
@@ -649,7 +650,7 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
     print("Computing Linear Regression")
     assert (
         pulse_time_ap.size == pulse_time_nidq.size
-    ), f"The two pulse pulse_time_ap:{pulse_time_ap.size} pulse_time_nidq:{pulse_time_nidq.size}"
+    ), f"The two pulse pulse_time_ap:{pulse_time_ap.size} pulse_time_nidq:{pulse_time_nidq.size} size doesn't match"
 
     a, b, r, tt, stderr = linregress(pulse_time_ap, pulse_time_nidq)
     # times_ap_corrected = times_ap * a + b
@@ -692,7 +693,7 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
         json.dump(synchro_dict, outfile, indent=4)
 
 
-########### Sorting comparison ###########
+################################################################## Sorting comparison ##################################################################
 def compare_sorter_cleaned(working_folder, sorting_clean_NAS_folder):
     """Comparison between sorters
 
@@ -747,15 +748,71 @@ def compare_sorter_cleaned(working_folder, sorting_clean_NAS_folder):
             # fig.savefig(comparison_figure_file)
 
 
-#################################
-########### Run Batch ###########
-#################################
+def inject_histology_information(
+    implant_name, cache_working_folder, sorting_clean_NAS_folder
+):
+
+    if implant_name not in histology_information:
+        print(f"{implant_name} not available in histology information")
+        return
+
+    areas = histology_information[implant_name]
+
+    for sorter_name, _ in sorters.items():
+        sorting_clean_NAS_folder = Path(
+            str(sorting_clean_NAS_folder).replace("temp", sorter_name)
+        )
+        print(f"NAS data is saved at {sorting_clean_NAS_folder}")
+
+        sorting_clean_CACHE_folder = (
+            cache_working_folder / f"sorting_clean_{sorter_name}"
+        )
+        wf_clean_folder = cache_working_folder / f"waveforms_clean_{sorter_name}"
+
+        # Read existing waveforms
+        we = si.WaveformExtractor.load_from_folder(wf_clean_folder)
+        print(we)
+
+        channel_areas = {chan_id: "unknown" for chan_id in we.channel_ids}
+
+        for area_name, channel_range in areas.items():
+            c0, c1 = channel_range
+            for c in range(c0, c1):
+                chan_id = we.channel_ids[c]
+                channel_areas[chan_id] = area_name
+
+        extremum_channels = si.get_template_extremum_channel(we, outputs="id")
+        unit_areas = list()
+        for unit_id in we.unit_ids:
+            max_chan_id = extremum_channels[unit_id]
+            unit_areas.append(channel_areas[max_chan_id])
+
+        sorting_cache = si.load_extractor(sorting_clean_CACHE_folder)
+        sorting_NAS = si.load_extractor(sorting_clean_NAS_folder)
+
+        sorting_cache.set_property("area", unit_areas)
+        sorting_NAS.set_property("area", unit_areas)
+
+        sorting_cache.save(
+            folder=cache_working_folder / f"sorting_clean_{sorter_name}_whistology"
+        )
+
+        sorting_clean_NAS_folder = sorting_clean_NAS_folder.parent / (
+            sorting_clean_NAS_folder.stem + "_whistology"
+        )
+        sorting_NAS.save(folder=sorting_clean_NAS_folder)
+
+
+#####################################################################################################################################################################
+########### Run Batch ###############################################################################################################################################
+#####################################################################################################################################################################
 def run_all(
-    pre_check=True,
-    sorting=True,
-    postproc=True,
+    pre_check=False,
+    sorting=False,
+    postproc=False,
     compare_sorters=False,
-    compute_alignment=True,
+    compute_alignment=False,
+    add_histology_metadata=True,
     time_stamp="default",
 ):
     """Overarching function to run pipeline
@@ -854,20 +911,44 @@ def run_all(
                 spikeglx_folder, cache_working_folder, time_range=time_range
             )
 
+        if add_histology_metadata:
+            inject_histology_information(
+                implant_name,
+                cache_working_folder,
+                sorting_clean_NAS_folder=NAS_sorting_folder,
+            )
+
 
 if __name__ == "__main__":
-    pre_check = True
-    sorting = True
+    # launch data pre-checks, i.e., peaks on probe, noise levels, drift
+    pre_check = False
+
+    # launch spike sorting
+    sorting = False
+
+    # launch postprocessing, i.e., merging similar units, saving clean waveforms into cache and nas, exporting report
     postproc = True
+
+    # launch ttl computation to obtain values for linear alignment between streams (nidq vs lf/ap)
+    compute_alignment = False
+
+    # launch the comparison between sorters
     compare_sorters = False
-    compute_alignment = True
+
+    # this allows you to add histology metadata to each unit in sorting
+    add_histology_metadata = False
+
+    # time stamp used for sorted data, i.e., <time_stamp>-<rec name>-<time range>. if "default": current yyyy-mm
     time_stamp = "default"
 
+
+    # this function will launch the chain of steps chosen above
     run_all(
         pre_check=pre_check,
         sorting=sorting,
         postproc=postproc,
         compare_sorters=compare_sorters,
         compute_alignment=compute_alignment,
+        add_histology_metadata=add_histology_metadata,
         time_stamp=time_stamp,
     )

@@ -1,41 +1,45 @@
 # Authors: Eduarda Centeno and Samuel Garcia
-
-# General support: contact Sam for support
+General support: contact Sam for support
 
 ## How to use the spike sorting pipeline and related visualization tools
-    1. We have pipelines for two systems in main_pipeline:
-        ** Key point: it's important to know that the tool expects the data to be organized and named in a specific way! Pay attention: there are hard-coded paths in the different scripts! **
 
-        a. Neuropixel / SpikeGLX
-         - Spikes Sorting:
-            The main script here is spike_sorting_pipeline_NP.py. This file depends on the adjacent Python files:
+**Key point: it's important to know that the tool expects the data to be organized and named in a specific way! Pay attention: there are hard-coded paths in the different script!**
 
-            params_NP: here we define all the parameters for preprocessing, sorting, and postprocessing. This includs paths to input and ouput data!
-            recording_list_NP: here we define the recordings to be processed
-            myfigures: here we have supporting functions to create probe vs peaks/noise plots in the preprocessing step
-            path_handling: here we keep all functions necessary for manipulating and concatenating paths
-            utils: here we have functions to manipulate the recording object (read/slice/apply preprocess)
+    
+We have pipelines for two systems in main_pipeline
+        
+### Neuropixel / SpikeGLX
+- **Spikes Sorting**:
+The main script here is spike_sorting_pipeline_NP.py. This file depends on the adjacent Python files:
 
-            Before running this script, you have to select with booleans which steps of the chain you want to run. For new sortings, we recommend:
-            pre_check = True
-            sorting = True
-            postproc = True
-            compute_alignment = True
-            time_stamp = "default"
+        params_NP: here we define all the parameters for preprocessing, sorting, and postprocessing. This includs paths to input and ouput data!
+        recording_list_NP: here we define the recordings to be processed
+        myfigures: here we have supporting functions to create probe vs peaks/noise plots in the preprocessing step
+        path_handling: here we keep all functions necessary for manipulating and concatenating paths
+        utils: here we have functions to manipulate the recording object (read/slice/apply preprocess)
+    
+    Before running this script, you have to select with booleans which steps of the chain you want to run. For new sortings, we recommend:
 
-            Important point 1: you can also consider running only the pre_check to first visualize the data drift and amount of peaks to decide if it's worth proceeding with the sorting at all.
+        pre_check = True
+        sorting = True
+        postproc = True
+        compute_alignment = True
+        time_stamp = "default"
+        
+    *Important point 1*: you can also consider running only the pre_check to first visualize the data drift and amount of peaks to decide if it's worth proceeding with the sorting at all.
+    
+    *Important point 2*: light clean sorting will by default will be saved in NAS, while heavy/complete cache in local disk. You can define this in params_NP.
 
-            Important point 2: light clean sorting will by default will be saved in NAS, while heavy/complete cache in local disk. You can define this in params_NP.
+- **Data visualization**:
+ The main script here is mainwindow.py. This file depends on the adjacent Python files:
 
-        - Data visualization:
-         The main script here is mainwindow.py. This file depends on the adjacent Python files:
          launch_ephyviewer: here we have a chain of EphyViewer viewers for our data types (lf, ap, nidq)
          params_viz: this file contais the base_folder for data fetching
          path_handling_viz: here we keep all functions necessary for manipulating and concatenating paths
          utils: here we have functions to manipulate the recording object (read/slice) and find data in NAS
 
 
-        We also have a .sh file to work with an executable and facilitate user experience.
-        Important point 1: this tool can also be used to trigger Song Sort (Manual labelling + canapy!) per bird!
+    We also have a .sh file to work with an executable and facilitate user experience.
+    *Important point 1*: this tool can also be used to trigger Song Sort (Manual labelling + canapy!) per bird!
 
          b. Cambridge Neurotech / OpenEphys

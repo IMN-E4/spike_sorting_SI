@@ -30,10 +30,13 @@ from pathlib import PosixPath
 import spikeinterface.full as si
 import ephyviewer
 from ephyviewer.myqt import QT
+import numpy as np
 
 # Internal imports
 from utils import *
 from path_handling_viz import *
+from params_viz import min_freq_envelope, max_freq_envelope, song_channel_name, envelope_kernel_size
+from song_envelope import make_song_envelope
 
 
 def open_my_viewer(
@@ -114,20 +117,24 @@ def open_my_viewer(
 
         for unit_id in order_units:
             if align_streams:
-                spike_times = sorting_data.get_unit_spike_train(unit_id=unit_id) / sr + synchro["b"]
-            
-            else:           
+                spike_times = (
+                    sorting_data.get_unit_spike_train(unit_id=unit_id) / sr
+                    + synchro["b"]
+                )
+
+            else:
                 spike_times = sorting_data.get_unit_spike_train(
                     unit_id=unit_id, return_times=True
                 )
-            
 
             all_spikes.append({"time": spike_times, "name": f"Unit#{unit_id}"})
         spike_source = ephyviewer.InMemorySpikeSource(all_spikes)
 
-        view0 = ephyviewer.SpikeTrainViewer(source=spike_source, name="sorting")
+        spike_train_view = ephyviewer.SpikeTrainViewer(
+            source=spike_source, name="sorting"
+        )
 
-        win.add_view(view0)
+        win.add_view(spike_train_view)
 
     if ap_recording:
         if viz_sorting == False:
@@ -153,16 +160,16 @@ def open_my_viewer(
             source_ap._t_start = source_ap._t_start + synchro["b"]
 
         # Create view and display only one channel to make things faster
-        view1 = ephyviewer.TraceViewer(source=source_ap, name="ap_raw")
-        view1.params["scale_mode"] = "same_for_all"
+        ap_trace_view = ephyviewer.TraceViewer(source=source_ap, name="ap_raw")
+        ap_trace_view.params["scale_mode"] = "same_for_all"
         for c in range(recording_spike.get_num_channels()):
             if c == 1:
                 visible = True
             else:
                 visible = False
-            view1.by_channel_params[f"ch{c}", "visible"] = visible
+            ap_trace_view.by_channel_params[f"ch{c}", "visible"] = visible
 
-        win.add_view(view1)
+        win.add_view(ap_trace_view)
 
     if lf_recording:
         # Read recording
@@ -187,22 +194,22 @@ def open_my_viewer(
             source_lf._t_start = source_lf._t_start + synchro["b"]
 
         # Create view and display only one channel to make things faster
-        view2 = ephyviewer.TraceViewer(source=source_lf, name="signals lf")
-        view2.params["scale_mode"] = "same_for_all"
+        lf_trace_view = ephyviewer.TraceViewer(source=source_lf, name="signals lf")
+        lf_trace_view.params["scale_mode"] = "same_for_all"
 
         # Plot time-freq
-        view2_ = ephyviewer.TimeFreqViewer(source=source_lf, name="time-freq")
+        lf_tf_view = ephyviewer.TimeFreqViewer(source=source_lf, name="time-freq")
 
         for c in range(recording_lf.get_num_channels()):
             if c == 1:
                 visible = True
             else:
                 visible = False
-            view2.by_channel_params[f"ch{c}", "visible"] = visible
-            view2_.by_channel_params[f"ch{c}", "visible"] = visible
+            lf_trace_view.by_channel_params[f"ch{c}", "visible"] = visible
+            lf_tf_view.by_channel_params[f"ch{c}", "visible"] = visible
 
-        win.add_view(view2_)
-        win.add_view(view2, tabify_with="time-freq")
+        win.add_view(lf_tf_view)
+        win.add_view(lf_trace_view, tabify_with="time-freq")
 
     if mic_spectrogram:
         # Read recording
@@ -219,18 +226,34 @@ def open_my_viewer(
 
         # Create view and display only one channel to make things faster
         view_raw_mic = ephyviewer.TraceViewer(source=source_mic, name="raw mic")
-        view3 = ephyviewer.SpectrogramViewer(source=source_mic, name="signals nidq")
-        view3.params["colormap"] = "inferno"
-        view3.params.child("scalogram")["overlapratio"] = 0.2
-        view3.params.child("scalogram")["binsize"] = 0.02
+
+        # Create spectrogram
+        view_spec_mic = ephyviewer.SpectrogramViewer(
+            source=source_mic, name="signals nidq"
+        )
+        view_spec_mic.params["colormap"] = "inferno"
+        view_spec_mic.params.child("scalogram")["overlapratio"] = 0.2
+        view_spec_mic.params.child("scalogram")["binsize"] = 0.02
+
+        # Create smoothed amplitude view (important for song sorting)
+        song_envelope = make_song_envelope(recording_nidq, channel_ids=[song_channel_name], kernel_size=envelope_kernel_size, min_freq_envelope=min_freq_envelope, max_freq_envelope=max_freq_envelope)
+
+        source_smoothed_mic = ephyviewer.SpikeInterfaceRecordingSource(song_envelope)
+
+        view_smoothed_mic = ephyviewer.TraceViewer(
+            source=source_smoothed_mic, name="smoothed mic"
+        )
+
         for c in range(recording_nidq.get_num_channels()):
             if c == 0:
                 visible = True
             else:
                 visible = False
-            view3.by_channel_params[f"ch{c}", "visible"] = visible
+            view_spec_mic.by_channel_params[f"ch{c}", "visible"] = visible
+            view_raw_mic.by_channel_params[f"ch{c}", "visible"] = visible
 
         win.add_view(view_raw_mic)
-        win.add_view(view3, tabify_with="raw mic")
+        win.add_view(view_spec_mic, tabify_with="raw mic")
+        win.add_view(view_smoothed_mic, tabify_with="raw mic")
 
     return win

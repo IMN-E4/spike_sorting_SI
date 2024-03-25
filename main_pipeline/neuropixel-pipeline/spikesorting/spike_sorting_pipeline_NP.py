@@ -518,6 +518,8 @@ def run_postprocessing_sorting(
 
         si.compute_template_metrics(we_clean)
 
+        si.compute_template_similarity(we_clean)
+
         if report_clean_folder.exists():
             print("report already there for ", report_clean_folder)
         else:

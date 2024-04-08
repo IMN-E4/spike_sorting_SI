@@ -696,16 +696,13 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
 
 
 ################################################################## Sorting comparison ##################################################################
-def compare_sorter_cleaned(working_folder, sorting_clean_NAS_folder):
+def compare_sorter_cleaned(cache_working_folder):
     """Comparison between sorters
 
     Parameters
     ----------
-    working_folder: path
-        path to working folder
-
-    sorting_clean_NAS_folder: Path
-        path to sorting clean folder
+    cache_working_folder: path
+        path to cache working folder
 
     Returns
     -------
@@ -713,18 +710,15 @@ def compare_sorter_cleaned(working_folder, sorting_clean_NAS_folder):
 
     """
     assert isinstance(
-        working_folder, Path
-    ), f"working_folder must be Path not {type(working_folder)}"
-    assert isinstance(
-        sorting_clean_NAS_folder, Path
-    ), f"sorting_clean_NAS_folder must be Path not {type(sorting_clean_NAS_folder)}"
+        cache_working_folder, Path
+    ), f"working_folder must be Path not {type(cache_working_folder)}"
 
     sortings = []
     for sorter_name, _ in sorters.items():
-        sorting_clean_NAS_folder = Path(
-            str(sorting_clean_NAS_folder).replace("temp", sorter_name)
+        sorting_clean_CACHE_folder = (
+            cache_working_folder / f"sorting_clean_{sorter_name}"
         )
-        sorting = si.load_extractor(sorting_clean_NAS_folder)
+        sorting = si.load_extractor(sorting_clean_CACHE_folder)
         sortings.append(sorting)
 
     sorter_names = list(sorters.keys())
@@ -742,12 +736,17 @@ def compare_sorter_cleaned(working_folder, sorting_clean_NAS_folder):
             fig, ax = plt.subplots()
             si.plot_agreement_matrix(comp, ax=ax)
             comparison_figure_file = (
-                working_folder
+                cache_working_folder
                 / f"comparison_clean_{sorter_names[i]}_{sorter_names[j]}.pdf"
             )
             print(comparison_figure_file)
             plt.show()
-            # fig.savefig(comparison_figure_file)
+            fig.savefig(comparison_figure_file)
+    
+    # comp_all = si.compare_multiple_sorters(sortings, name_list=sorter_names)
+    # plt.figure()
+    # si.plot_multicomparison_agreement(comp_all)
+
 
 
 def inject_histology_information(
@@ -905,7 +904,7 @@ def run_all(
 
         if compare_sorters:
             # Compare sorters
-            compare_sorter_cleaned(cache_working_folder, NAS_sorting_folder)
+            compare_sorter_cleaned(cache_working_folder)
 
         if compute_alignment:
             # Compute pulse alignement
@@ -923,13 +922,13 @@ def run_all(
 
 if __name__ == "__main__":
     # launch data pre-checks, i.e., peaks on probe, noise levels, drift
-    pre_check = False
+    pre_check = True
 
     # launch spike sorting
     sorting = False
 
     # launch postprocessing, i.e., merging similar units, saving clean waveforms into cache and nas, exporting report
-    postproc = True
+    postproc = False
 
     # launch ttl computation to obtain values for linear alignment between streams (nidq vs lf/ap)
     compute_alignment = False

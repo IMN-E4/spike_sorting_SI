@@ -173,17 +173,23 @@ def apply_preprocess(rec):
     rec = si.phase_shift(rec)
 
     # Bandpass filter
-    rec = si.bandpass_filter(
+    rec_filter = si.bandpass_filter(
         rec,
-        freq_min=preprocessing_params["highpass"],
-        freq_max=preprocessing_params["lowpass"],
+        **preprocessing_params["bandpass_filter"],
     )
+
+    # Detect and remove bad channels
+    print('Starting bad channel detection - this might take some time!')
+    bad_channel_ids, _ = si.detect_bad_channels(rec_filter,  **preprocessing_params["bad_channels"])
+
+    print(f"These were the bad channels detected: {bad_channel_ids}")
+
+    rec_preproc = rec_filter.remove_channels(bad_channel_ids)
 
     # Common referencing
     rec_preproc = si.common_reference(
-        rec,
-        reference=preprocessing_params["reference"],
-        local_radius=preprocessing_params["local_radius"],
+        rec_preproc,
+        **preprocessing_params["common_reference"],
     )
     return rec_preproc
 

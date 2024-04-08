@@ -8,13 +8,19 @@ from pathlib import Path
 ####################
 # Base paths       #
 ####################
-brain_area = 'AreaX-LMAN'
-# brain_area = 'Data_For_Testing'
+# brain_area = 'AreaX-LMAN'
+brain_area = 'Data_For_Testing'
 # brain_area = 'Cerebellum'
 # brain_area = 'Anindita-XLMAN-JUV'
 
 base_input_folder = Path("/nas/Neuropixel_Recordings/") / brain_area
-base_sorting_cache_folder = Path("/data1/Neuropixel_recordings/") / brain_area
+base_sorting_cache_folder = Path("/data2/Neuropixel_recordings/") / brain_area
+
+
+# brain_area = 'Pilot_Data_XLMAN'
+# base_input_folder = Path("/nas/Neuropixel2_Recordings/") / brain_area
+# base_sorting_cache_folder = Path("/data2/Neuropixel2_recordings/") / brain_area 
+
 
 
 ####################
@@ -33,10 +39,22 @@ job_kwargs = {
 params_location = Path(__file__)
 
 preprocessing_params = {
-    "lowpass": 6000,
-    "highpass": 300,
-    "local_radius": (50, 100),
-    "reference": "local",
+    "order_by_depth": True,
+    "bandpass_filter": {
+        "freq_min": 300.,
+        "freq_max": 6000.,
+    },
+    "common_reference":{
+        "local_radius": (50, 100),
+        "reference": "local",
+    },
+    "bad_channels": {
+                    "method": "coherence+psd",
+                    "chunk_duration_s": .5,
+                    "num_random_chunks": 100,
+                    # this step depend on the seed!!!!!!!
+                    # "seed": None
+    }
 }
 
 ###############################
@@ -185,25 +203,31 @@ tridesclous_params = {
 tridesclous_params_docker = {"docker_image": "spikeinterface/tridesclous-base"}
 
 kilosort2_params = {
-    "docker_image": "spikeinterface/kilosort2-compiled-base",
+    "docker_image": "spikeinterface/kilosort2-compiled-base:latest",
 }
 
 kilosort2_5_params = {
     "do_correction": False,
     "docker_image": "spikeinterface/kilosort2_5-compiled-base",
+    "installation_mode": "pypi"
 }
 
-spykingcircus2_params = {}
+spykingcircus2_params = {
+
+}
 
 yass_params = {
     "docker_image": "spikeinterface/yass-base",
+    "installation_mode": "pypi"
 }
 
 sorters = {
-    # "tridesclous": tridesclous_params_docker,
-    # 'kilosort2' : kilosort2_params,
-    "kilosort2_5": kilosort2_5_params
+    "tridesclous": tridesclous_params_docker,
+    'kilosort2' : kilosort2_params,
+    "kilosort2_5": kilosort2_5_params,
     # 'experimental_sorter1': dict(delete_existing=True),
-    # 'spykingcircus2' : spykingcircus2_params,
-    # "yass" : yass_params
+    "spykingcircus2" : spykingcircus2_params,
+    # "yass" : yass_params,
+    "mountainsort4": {"docker_image": "spikeinterface/mountainsort4-base:latest",
+                      "installation_mode": "pypi"}
 }

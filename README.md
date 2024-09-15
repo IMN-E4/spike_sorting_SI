@@ -40,3 +40,7 @@ The main script here is spike_sorting_pipeline_NP.py. This file depends on the a
 
 
     We also have a NP_VIZ.sh file to work with an executable and facilitate user experience.
+
+
+### Cambridge Neurotech / OpenEphys
+Sam and Eduarda worked temporarily to create a sorting pipeline for Cambridge Neurotech data; however, developments stopped due to discontinuation of data collection with this setup. 

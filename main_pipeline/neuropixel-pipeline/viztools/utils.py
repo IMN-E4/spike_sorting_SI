@@ -206,13 +206,16 @@ def identify_time_and_depth_range(sorting_folder):
     return rec_name_sorting, time_stamp, depth_range, time_range
 
 
-def find_data_in_nas(root_to_data="/nas"):
+def find_data_in_nas(root_to_data, target_folder):
     """Find database in NAS
 
     Parameters
     ----------
     root_to_data: str or Path
         root folder where data is
+    
+    target_folder: str
+        target NP folder
 
     Returns
     -------
@@ -224,7 +227,7 @@ def find_data_in_nas(root_to_data="/nas"):
         root_to_data, (str, Path)
     ), f"root_to_data must be type str or Path not {type(root_to_data)}"
     
-    target_path = Path(root_to_data) / "Neuropixel_Recordings"
+    target_path = Path(root_to_data) / target_folder
     keyword = "*ap.meta"
     df = pd.DataFrame(
         columns=[

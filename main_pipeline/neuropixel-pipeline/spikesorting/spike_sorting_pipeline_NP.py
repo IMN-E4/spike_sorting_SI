@@ -19,9 +19,7 @@ __status__ = "Production"
 ####################
 # TO DO            #
 ####################
-
-# 1. Add bad channel detection
-# 2. Consider adding unit property [brain area]?
+#  2. Consider adding unit property [brain area]?
 
 
 ####################
@@ -47,7 +45,7 @@ import pandas as pd
 
 # Internal imports
 from params_NP import *
-from recording_list_NP import recording_list, histology_information
+from recording_list_NP import recording_list
 from myfigures import *
 from path_handling import (
     concatenate_spikeglx_folder_path,
@@ -302,6 +300,7 @@ def run_sorting_pipeline(rec_preprocess, working_folder, drift_correction=False)
     for sorter_name, params in sorters.items():
         sorting_folder = working_folder / f"sorting_{sorter_name}"
         sorting = si.load_extractor(sorting_folder)
+        sorting = si.remove_excess_spikes(sorting, rec_preprocess)
 
         wf_folder = working_folder / f"waveforms_{sorter_name}"
         we = si.extract_waveforms(
@@ -475,6 +474,7 @@ def run_postprocessing_sorting(
             **job_kwargs,
         )
 
+        # Making sure units are sorted by depth
         unit_locations = si.compute_unit_locations(
             we_tmp, method="monopolar_triangulation"
         )
@@ -640,14 +640,17 @@ def compute_pulse_alignement(spikeglx_folder, working_folder, time_range=None):
     pulse_ind_ap = np.flatnonzero(
         (pulse_ap[:-1] <= thresh_ap) & (pulse_ap[1:] > thresh_ap)
     )  # identifies the beggining of the pulse
+
+    pulse_ind_ap = np.delete(pulse_ind_ap, 955)
+
     pulse_time_ap = times_ap_sec[pulse_ind_ap]
 
     # to check if there are no artifacts that could affect the alignment
     print("Checking assertions")
-    assert np.all(np.diff(pulse_time_nidq) > 0.98)
-    assert np.all(np.diff(pulse_time_nidq) < 1.02)
-    assert np.all(np.diff(pulse_time_ap) > 0.98), "didnt pass first assertion"
-    assert np.all(np.diff(pulse_time_ap) < 1.02), "didnt pass second assertion"
+    assert np.all(np.diff(pulse_time_nidq) > 0.98), "nidq didnt pass first assertion"
+    assert np.all(np.diff(pulse_time_nidq) < 1.02), "nidq didnt pass second assertion"
+    assert np.all(np.diff(pulse_time_ap) > 0.98), "ap didnt pass first assertion"
+    assert np.all(np.diff(pulse_time_ap) < 1.02), "ap didnt pass second assertion"
 
     print("Computing Linear Regression")
     assert (
@@ -740,12 +743,13 @@ def compare_sorter_cleaned(cache_working_folder):
                 / f"comparison_clean_{sorter_names[i]}_{sorter_names[j]}.pdf"
             )
             print(comparison_figure_file)
-            plt.show()
-            fig.savefig(comparison_figure_file)
+            # fig.savefig(comparison_figure_file)
     
-    # comp_all = si.compare_multiple_sorters(sortings, name_list=sorter_names)
-    # plt.figure()
-    # si.plot_multicomparison_agreement(comp_all)
+    comp_all = si.compare_multiple_sorters(sortings, name_list=sorter_names)
+    si.plot_multicomparison_agreement(comp_all)
+    si.plot_multicomparison_agreement_by_sorter(comp_all)
+    si.plot_multicomparison_graph(comp_all, draw_labels=True, edge_cmap='viridis')
+    plt.show()
 
 
 
@@ -922,17 +926,15 @@ def run_all(
 
 if __name__ == "__main__":
     # launch data pre-checks, i.e., peaks on probe, noise levels, drift
-    pre_check = True
+    pre_check = False
 
     # launch spike sorting
-    sorting = False
+    sorting = True
 
     # launch postprocessing, i.e., merging similar units, saving clean waveforms into cache and nas, exporting report
-    postproc = False
-
+    postproc = True
     # launch ttl computation to obtain values for linear alignment between streams (nidq vs lf/ap)
     compute_alignment = False
-
     # launch the comparison between sorters
     compare_sorters = False
 

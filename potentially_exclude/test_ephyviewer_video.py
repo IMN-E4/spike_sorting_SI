@@ -35,16 +35,16 @@ import numpy as np
 
 
 # Choose sources:
-ap = False
+ap = True
 raw_lfp = False
-mic = True
+mic = False
 filtered_lfp = False
 sorting = False
-camera = True
+camera = False
 
 # Paths
-base_folder = Path('/nas/Neuropixel_Recordings/AreaX-LMAN/Imp_29_11_2022/Recordings/')
-data_folder = base_folder / 'Rec_2_30_11_2022_morning_nap_g0'
+base_folder = Path('/nas/Neuropixel2_Recordings/Pilot_Data_XLMAN/Imp_20240410/Recordings/')
+data_folder = base_folder / '20240410_LMANmidshanksXextshanks_e1_g0'
 camera_file =  'video.mp4'
 
 
@@ -64,6 +64,10 @@ win = ephyviewer.MainViewer(debug=True, show_auto_scale=True)
 ### Sources
 if ap:   
     recording_spike = si.SpikeGLXRecordingExtractor(data_folder, stream_id='imec0.ap') # ap file
+    recording_spike = recording_spike.channel_slice(channel_ids=['imec0.ap#AP191', 'imec0.ap#AP190', 'imec0.ap#AP189'])
+    
+    recording_spike = si.bandpass_filter(recording_spike, freq_min=300, freq_max=6000)
+
     sig_source0 = ephyviewer.SpikeInterfaceRecordingSource(recording=recording_spike) # spike trains
     view0 = ephyviewer.TraceViewer(source=sig_source0, name='ap') # Trace of ap signal
     win.add_view(view0)
@@ -86,11 +90,11 @@ if mic:
     win.add_view(view2)
 
 if camera:
-    video_source = ephyviewer.MultiVideoFileSource([data_folder/camera_file], 
-                                                #    video_times=np.arange(0,recording_nidq.get_total_duration(),)
-                                                   )
-    # video_source.video_times = np.arange(0, recording_nidq.get_total_duration(), video_source.nb_f)
-    view3 = ephyviewer.VideoViewer(source=video_source, name='video')
+    n_secs_bet_photos = 5   
+    video_source = ephyviewer.MultiVideoFileSource([data_folder/camera_file])
+    # print(video_source.nb_frames)
+    video_times = np.arange(video_source.nb_frames[0])*n_secs_bet_photos
+    view3 = ephyviewer.VideoViewer.from_filenames([data_folder/camera_file], video_times=[video_times], name='video')
     win.add_view(view3)
 
 # if filtered_lfp:

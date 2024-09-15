@@ -79,7 +79,7 @@ def find_data(rec_system, output_path, root_to_data="/nas"):
 
         df.loc[len(df)] = split_parts
 
-    df.to_csv(output_path/'test.csv')
+    df.to_csv(output_path/'from_sniffer.csv')
 
-# if __name__ == "__main__":
-#     find_data('Neuropixel', root_to_data="/nas")
+if __name__ == "__main__":
+    find_data('Cambridge', output_path=Path('/home/eduarda/python-related/github-repos/spike_sorting_with_samuel/main_pipeline/cambridge-pipeline/viztools/'), root_to_data="/nas")

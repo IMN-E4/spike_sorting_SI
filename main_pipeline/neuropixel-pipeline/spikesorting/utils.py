@@ -58,7 +58,7 @@ def slice_rec_time(rec, time_range):
     fs = rec.get_sampling_frequency()
 
     # Time slicing
-    print(f"Time slicing between {time_range[0]} and {time_range[1]}")
+    print(f"Time slicing between {time_range[0]} and {time_range[1]}s")
     time_range = tuple(float(e) for e in time_range)
     frame_range = (int(t * fs) for t in time_range)
     sliced_rec = rec.frame_slice(*frame_range)

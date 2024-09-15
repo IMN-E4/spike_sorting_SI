@@ -29,8 +29,6 @@ from pathlib import PosixPath
 # Third party imports
 import spikeinterface.full as si
 import ephyviewer
-from ephyviewer.myqt import QT
-import numpy as np
 
 # Internal imports
 from utils import *
@@ -47,6 +45,7 @@ def open_my_viewer(
     mic_spectrogram=True,
     lf_recording=False,
     viz_sorting=False,
+    camera=False,
     align_streams=False,
     load_sync_channel=False,
     order_by_depth=True,
@@ -114,6 +113,7 @@ def open_my_viewer(
         order_units = sorting_data.unit_ids
         if order_by_depth:
             order_units = order_units[::-1]
+            print('BEWARE: Units sorting by depth assumes that sorting object already contains data sorted by depth! Double check in unit list.csv')
 
         for unit_id in order_units:
             if align_streams:
@@ -255,5 +255,12 @@ def open_my_viewer(
         win.add_view(view_raw_mic)
         win.add_view(view_spec_mic, tabify_with="raw mic")
         win.add_view(view_smoothed_mic, tabify_with="raw mic")
+    
+    if camera:
+        # if the camera data is a sequence of photos, you have to convert to video.mp4 first. Check "create_video_from_photos.py"!
+        assert (spikeglx_folder/'video.mp4').exists(), 'video.mp4 not found!!!'       
+        video_source = ephyviewer.MultiVideoFileSource([spikeglx_folder/'video.mp4'])
+        view_camera = ephyviewer.VideoViewer(source=video_source, name='video')
+        win.add_view(view_camera)
 
     return win

@@ -8,15 +8,17 @@ from pathlib import Path
 ####################
 # Base paths       #
 ####################
-# brain_area = 'AreaX-LMAN'
-brain_area = 'Data_For_Testing'
+brain_area = 'AreaX-LMAN'
+# brain_area = 'Data_For_Testing'
 # brain_area = 'Cerebellum'
 # brain_area = 'Anindita-XLMAN-JUV'
+# brain_area = 'nelson-XLMAN'
 
 base_input_folder = Path("/nas/Neuropixel_Recordings/") / brain_area
 base_sorting_cache_folder = Path("/data2/Neuropixel_recordings/") / brain_area
 
 
+# ## NP2 data by Carmen
 # brain_area = 'Pilot_Data_XLMAN'
 # base_input_folder = Path("/nas/Neuropixel2_Recordings/") / brain_area
 # base_sorting_cache_folder = Path("/data2/Neuropixel2_recordings/") / brain_area 
@@ -209,8 +211,9 @@ kilosort2_params = {
 kilosort2_5_params = {
     "do_correction": False,
     "docker_image": "spikeinterface/kilosort2_5-compiled-base",
-    "installation_mode": "pypi"
-}
+    "installation_mode": "pypi",
+    "extra_requirements":["numpy==1.26.4"]
+    }
 
 spykingcircus2_params = {
 
@@ -222,12 +225,12 @@ yass_params = {
 }
 
 sorters = {
-    "tridesclous": tridesclous_params_docker,
-    'kilosort2' : kilosort2_params,
+    # "tridesclous": tridesclous_params_docker,
+    # 'kilosort2' : kilosort2_params,
     "kilosort2_5": kilosort2_5_params,
     # 'experimental_sorter1': dict(delete_existing=True),
-    "spykingcircus2" : spykingcircus2_params,
+    # "spykingcircus2" : spykingcircus2_params,
     # "yass" : yass_params,
-    "mountainsort4": {"docker_image": "spikeinterface/mountainsort4-base:latest",
-                      "installation_mode": "pypi"}
+    # "mountainsort4": {"docker_image": "spikeinterface/mountainsort4-base:latest",
+    #                   "installation_mode": "pypi"}
 }

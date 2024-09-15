@@ -43,15 +43,16 @@ import spikeinterface.full as si
 from launch_ephyviewer import open_my_viewer
 from path_handling_viz import concatenate_available_sorting_paths
 from utils import find_data_in_nas
+from params_viz import root, target_folder
 
 
-##### for testing
+# ##### for testing
 # import pandas as pd
 # recordings_index = pd.read_csv('/home/eduarda/python-related/github-repos/spike_sorting_with_samuel/main_pipeline/neuropixel-pipeline/viztools/testing.csv',
 #                                index_col=0)
 
 ################################################################################
-recordings_index = find_data_in_nas(root_to_data="/nas")
+recordings_index = find_data_in_nas(root_to_data=root, target_folder=target_folder)
 display_columns = ["rec_name"]
 
 
@@ -138,7 +139,7 @@ class MainWindow(QT.QMainWindow):
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
     # Open Song Sorting
-    def open_song_sorting(self):
+    def open_song_sorting(self): #### To be added!
         implant_name = self.sender().key
         paths = recordings_index[recordings_index.implant_name == implant_name].apply(lambda x :'/'.join(x.astype(str)),1)
         paths_of_available_recs = [Path('/' + path) for path in paths]
@@ -223,6 +224,7 @@ class MainWindow(QT.QMainWindow):
             {"name": "mic_spectrogram", "type": "bool", "value": True},
             {"name": "ap_recording", "type": "bool", "value": False},
             {"name": "lf_recording", "type": "bool", "value": False},
+            {"name": "camera", "type": "bool", "value": False},
             {"name": "align_streams", "type": "bool", "value": False},
             {"name": "load_sync_channel", "type": "bool", "value": False},
             {"name": "order_by_depth", "type": "bool", "value": False},

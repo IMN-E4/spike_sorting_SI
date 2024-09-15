@@ -77,13 +77,39 @@ class KernelSmoothRecordingSegment(BasePreprocessorSegment):
             return trace_conv[left_margin:, :].astype(dtype)
         
         
-
-
 apply_kernel_smooth = define_function_from_class(source_class=KernelSmoothRecording, name="apply_kernel_smooth")
 
 
 def make_song_envelope(recording, channel_ids, kernel_size=1000, min_freq_envelope=1000, max_freq_envelope=8000):
+    """ Function to make song envelope
 
+    Parameters
+    ----------
+    recording: spikeinterface object
+        spikeinterface recording
+
+    channel_ids: list
+        list with channel ids
+
+    kernel_size: int
+        kernel size in data points
+        default: 1000
+
+    min_freq_envelope: int
+        minimum frequency for envelope in Hz
+        default: 1000
+
+    max_freq_envelope: int
+        maximum frequency for envelope in Hz
+        default: 8000
+
+    Returns
+    -------
+    smoothed: spikeinterface KernelSmoothRecording
+        recording envelope
+
+
+    """
     recording = recording.channel_slice(channel_ids=channel_ids)
 
     smooth_kernel = np.ones(kernel_size)/kernel_size
